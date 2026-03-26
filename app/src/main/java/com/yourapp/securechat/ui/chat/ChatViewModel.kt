@@ -3,44 +3,34 @@ package com.yourapp.securechat.ui.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.yourapp.securechat.data.ChatMessage
+import com.yourapp.securechat.data.model.ChatMessage
 import com.yourapp.securechat.data.repository.ChatRepository
 import com.yourapp.securechat.utils.Logger
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel for [ChatActivity].
- *
- * Responsibilities:
- *  - Expose the live message list for the current conversation as a [StateFlow]
- *  - Provide [myDisplayName] for outgoing message attribution
- *  - Offer [deleteConversation] for clearing chat history
- */
 class ChatViewModel(
     private val chatRepository: ChatRepository,
-    private val deviceAddress: String
+    initialDeviceAddress: String
 ) : ViewModel() {
-
-    // ── Display name (could later come from SharedPreferences / SettingsViewModel) ──
 
     var myDisplayName: String = "Me"
 
-    // ── Messages ──────────────────────────────────────────────────────────────
+    private val activeDeviceAddress = MutableStateFlow(initialDeviceAddress)
 
-    /**
-     * Live stream of all [ChatMessage]s for this conversation, ordered by
-     * timestamp ascending. Backed by Room's Flow — updates automatically
-     * whenever the DB changes (incoming message saved by [MessageReceiver],
-     * or outgoing message saved by [BluetoothChatService.sendMessage]).
-     */
-    val messages: StateFlow<List<ChatMessage>> = chatRepository
-        .getMessages(deviceAddress)
+    val messages: StateFlow<List<ChatMessage>> = activeDeviceAddress
+        .flatMapLatest { deviceAddress ->
+            if (deviceAddress.isBlank()) flowOf(emptyList())
+            else chatRepository.getMessages(deviceAddress)
+        }
         .catch { e ->
-            Logger.e(TAG, "Error loading messages for $deviceAddress", e)
+            Logger.e(TAG, "Error loading messages for ${activeDeviceAddress.value}", e)
             emit(emptyList())
         }
         .stateIn(
@@ -49,27 +39,21 @@ class ChatViewModel(
             initialValue = emptyList()
         )
 
-    // ── Actions ───────────────────────────────────────────────────────────────
-
-    /**
-     * Deletes all messages for this conversation from the local database.
-     */
-    fun deleteConversation() {
-        viewModelScope.launch {
-            runCatching { chatRepository.deleteConversation(deviceAddress) }
-                .onSuccess { Logger.d(TAG, "Conversation deleted for $deviceAddress") }
-                .onFailure { e -> Logger.e(TAG, "Failed to delete conversation", e) }
+    fun setConversationDevice(deviceAddress: String) {
+        if (deviceAddress.isNotBlank() && deviceAddress != activeDeviceAddress.value) {
+            activeDeviceAddress.value = deviceAddress
         }
     }
 
-    // ── Cleanup ───────────────────────────────────────────────────────────────
-
-    override fun onCleared() {
-        Logger.d(TAG, "ChatViewModel cleared")
-        super.onCleared()
+    fun clearConversation() {
+        viewModelScope.launch {
+            val deviceAddress = activeDeviceAddress.value
+            if (deviceAddress.isBlank()) return@launch
+            runCatching { chatRepository.clearConversation(deviceAddress) }
+                .onSuccess { Logger.d(TAG, "Conversation cleared for $deviceAddress") }
+                .onFailure { e -> Logger.e(TAG, "Failed to clear conversation", e) }
+        }
     }
-
-    // ── Factory ───────────────────────────────────────────────────────────────
 
     class Factory(
         private val chatRepository: ChatRepository,

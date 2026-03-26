@@ -5,17 +5,16 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.yourapp.securechat.R
-import com.yourapp.securechat.data.model.BluetoothDeviceModel
+import com.yourapp.securechat.data.model.BluetoothDeviceInfo
 import com.yourapp.securechat.databinding.ItemDeviceBinding
 
 /**
- * RecyclerView adapter for displaying [BluetoothDeviceModel] items.
+ * RecyclerView adapter for displaying [BluetoothDeviceInfo] items.
  * Uses [ListAdapter] + [DiffUtil] for efficient list updates.
  */
 class DeviceListAdapter(
-    private val onDeviceClick: (BluetoothDeviceModel) -> Unit
-) : ListAdapter<BluetoothDeviceModel, DeviceListAdapter.DeviceViewHolder>(DiffCallback) {
+    private val onDeviceClick: (BluetoothDeviceInfo) -> Unit
+) : ListAdapter<BluetoothDeviceInfo, DeviceListAdapter.DeviceViewHolder>(DiffCallback) {
 
     // ── ViewHolder ────────────────────────────────────────────────────────────
 
@@ -23,21 +22,17 @@ class DeviceListAdapter(
         private val binding: ItemDeviceBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(device: BluetoothDeviceModel) {
-            binding.tvDeviceName.text = device.displayName
-            binding.tvDeviceAddress.text = device.address
-
-            binding.tvBondState.text = when (device.bondState) {
-                BluetoothDeviceModel.BondState.BONDED  -> binding.root.context.getString(R.string.bond_paired)
-                BluetoothDeviceModel.BondState.BONDING -> binding.root.context.getString(R.string.bond_pairing)
-                BluetoothDeviceModel.BondState.NONE    -> binding.root.context.getString(R.string.bond_none)
+        fun bind(device: BluetoothDeviceInfo) {
+            binding.deviceName.text = device.displayName
+            binding.deviceAddress.text = device.address
+            binding.bondStateBadge.text = when (device.bondState) {
+                BluetoothDeviceInfo.BondState.BONDED -> "Paired"
+                BluetoothDeviceInfo.BondState.BONDING -> "Pairing..."
+                BluetoothDeviceInfo.BondState.NONE -> ""
             }
-
-            binding.ivDeviceIcon.setImageResource(
-                if (device.isPaired) R.drawable.ic_bluetooth_paired
-                else R.drawable.ic_bluetooth_device
-            )
-
+            binding.bondStateBadge.visibility =
+                if (device.bondState == BluetoothDeviceInfo.BondState.NONE) android.view.View.GONE
+                else android.view.View.VISIBLE
             binding.root.setOnClickListener { onDeviceClick(device) }
         }
     }
@@ -57,15 +52,15 @@ class DeviceListAdapter(
 
     // ── DiffUtil ──────────────────────────────────────────────────────────────
 
-    companion object DiffCallback : DiffUtil.ItemCallback<BluetoothDeviceModel>() {
+    companion object DiffCallback : DiffUtil.ItemCallback<BluetoothDeviceInfo>() {
         override fun areItemsTheSame(
-            oldItem: BluetoothDeviceModel,
-            newItem: BluetoothDeviceModel
+            oldItem: BluetoothDeviceInfo,
+            newItem: BluetoothDeviceInfo
         ): Boolean = oldItem.address == newItem.address
 
         override fun areContentsTheSame(
-            oldItem: BluetoothDeviceModel,
-            newItem: BluetoothDeviceModel
+            oldItem: BluetoothDeviceInfo,
+            newItem: BluetoothDeviceInfo
         ): Boolean = oldItem == newItem
     }
 }

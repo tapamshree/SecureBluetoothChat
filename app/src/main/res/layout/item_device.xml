@@ -1,0 +1,249 @@
+<!--
+    ============================================================
+    FILE: res/layout/item_device.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        The row layout for a single Bluetooth device entry in the
+        RecyclerViews on DeviceListActivity. This layout is inflated
+        by DeviceListAdapter.kt for every device in both the
+        "Paired Devices" and "Available Devices" lists.
+
+    WHO USES THIS:
+        DeviceListAdapter.kt inflates this layout inside:
+            onCreateViewHolder() → ItemDeviceBinding.inflate()
+        Then binds data inside:
+            onBindViewHolder() → binds a BluetoothDeviceInfo object
+
+    WHAT DATA COMES FROM BluetoothDeviceInfo:
+        data class BluetoothDeviceInfo(
+            val name: String,        → binding.deviceName
+            val address: String,     → binding.deviceAddress
+            val bondState: Int       → drives bondStateBadge visibility
+                                       and deviceStatusIcon tint
+        )
+        bondState values (from Android BluetoothDevice constants):
+            BOND_NONE    = 10  → "Available"  (gray icon)
+            BOND_BONDING = 11  → "Pairing…"   (amber icon, spinner)
+            BOND_BONDED  = 12  → "Paired"     (green icon)
+
+    LAYOUT STRUCTURE:
+        MaterialCardView (root — the tappable row card)
+        └── ConstraintLayout
+            ├── ImageView        — device type icon (phone/headset)
+            │                      tinted based on bond state
+            ├── TextView         — device name (bold, primary text)
+            ├── TextView         — MAC address (small, secondary text)
+            ├── TextView         — bond state badge ("Paired" label)
+            └── ImageView        — chevron arrow (→) on the right
+                                   indicating the row is tappable
+
+    HOW CLICKS ARE HANDLED:
+        The entire card is clickable. In DeviceListAdapter.kt:
+            holder.binding.root.setOnClickListener {
+                onDeviceClick(device)
+            }
+        The lambda onDeviceClick is passed into the adapter
+        constructor from DeviceListActivity.kt, which then calls
+        DeviceViewModel.connectToDevice(device).
+
+    VISUAL STATES:
+        DeviceListAdapter.kt updates these views per bond state:
+            BOND_BONDED  → deviceStatusIcon tint = status_connected (green)
+                           bondStateBadge visible, text = "Paired"
+                           bondStateBadge textColor = status_connected
+            BOND_BONDING → deviceStatusIcon tint = status_connecting (amber)
+                           bondStateBadge visible, text = "Pairing…"
+                           bondStateBadge textColor = status_connecting
+            BOND_NONE    → deviceStatusIcon tint = text_secondary (gray)
+                           bondStateBadge gone
+
+    SPACING:
+        Items have marginBottom="8dp" so there is a visible gap
+        between rows rather than them touching each other.
+        The card's own padding handles internal content spacing.
+
+    VIEW BINDING:
+        Accessed in DeviceListAdapter.kt via:
+            ItemDeviceBinding.inflate(inflater, parent, false)
+        Key IDs:
+            binding.deviceIcon        — ImageView (device type icon)
+            binding.deviceName        — TextView  (device name)
+            binding.deviceAddress     — TextView  (MAC address)
+            binding.bondStateBadge    — TextView  (Paired / Pairing…)
+            binding.deviceChevron     — ImageView (→ arrow)
+    ============================================================
+-->
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardBackgroundColor="@color/surface"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:rippleColor="@color/brand_primary_light"
+    app:strokeColor="@color/divider"
+    app:strokeWidth="1dp">
+
+    <!--
+        INNER CONSTRAINT LAYOUT
+        Handles precise positioning of the four content elements.
+        16dp padding all around gives the content comfortable
+        breathing room inside the card boundary.
+    -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <!-- ====================================================
+             DEVICE ICON
+             Circular tinted icon on the left representing the
+             device type. Uses Android's built-in phone icon as
+             a placeholder — replace with a custom vector drawable
+             (ic_device_phone, ic_device_headset, etc.) later.
+
+             The tint color is updated in DeviceListAdapter.kt
+             based on bondState:
+                 Bonded   → @color/status_connected  (green)
+                 Bonding  → @color/status_connecting (amber)
+                 None     → @color/text_secondary    (gray)
+
+             Size 40dp × 40dp — large enough to be recognizable
+             but not so large it dominates the row.
+             ================================================== -->
+        <ImageView
+            android:id="@+id/deviceIcon"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:src="@android:drawable/ic_menu_call"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Device icon"
+            android:background="@color/surface_variant"
+            android:padding="8dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+
+        <!-- ====================================================
+             DEVICE NAME
+             The human-readable Bluetooth name of the device
+             (e.g. "Pixel 7 Pro", "Samsung Galaxy S24").
+             Bold and primary color so it is the first thing
+             the eye is drawn to in the row.
+             Constrained to sit between the icon (left) and
+             the chevron arrow (right).
+             maxLines="1" + ellipsize="end" prevents very long
+             device names from wrapping and breaking the layout.
+             ================================================== -->
+        <TextView
+            android:id="@+id/deviceName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodyMedium"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="2dp"
+            tools:text="Pixel 7 Pro"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/deviceAddress"
+            app:layout_constraintStart_toEndOf="@id/deviceIcon"
+            app:layout_constraintEnd_toStartOf="@id/deviceChevron" />
+
+
+        <!-- ====================================================
+             DEVICE MAC ADDRESS
+             The Bluetooth hardware address (e.g. "AA:BB:CC:DD:EE:FF").
+             Shown in small secondary text below the name.
+             Useful for distinguishing two devices with the same name.
+             monospace font makes the colon-separated hex more readable.
+             ================================================== -->
+        <TextView
+            android:id="@+id/deviceAddress"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodySmall"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginTop="2dp"
+            tools:text="AA:BB:CC:DD:EE:FF"
+            app:layout_constraintTop_toBottomOf="@id/deviceName"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/deviceIcon"
+            app:layout_constraintEnd_toStartOf="@id/deviceChevron" />
+
+
+        <!-- ====================================================
+             BOND STATE BADGE
+             A small pill-shaped label that floats above the
+             chevron arrow showing the pairing relationship:
+                 "Paired"   → green text (BOND_BONDED)
+                 "Pairing…" → amber text (BOND_BONDING)
+             Hidden (GONE) for BOND_NONE devices — if the device
+             is simply available/discovered there is no label.
+
+             The background is set programmatically in the adapter
+             using a tinted chip-style drawable, or simply left
+             as text-only for simplicity.
+
+             Positioned at the top-right above the chevron so it
+             doesn't interrupt the left-side text hierarchy.
+             ================================================== -->
+        <TextView
+            android:id="@+id/bondStateBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:textColor="@color/status_connected"
+            android:textAllCaps="true"
+            android:letterSpacing="0.05"
+            android:visibility="gone"
+            tools:visibility="visible"
+            tools:text="Paired"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/deviceChevron" />
+
+
+        <!-- ====================================================
+             CHEVRON ARROW (→)
+             Right-side indicator that the row is tappable and
+             will navigate somewhere (connect to this device).
+             Uses Android's built-in arrow drawable as placeholder.
+             Tinted to text_secondary so it is visible but doesn't
+             compete with the device name for attention.
+             Centered vertically in the row.
+             ================================================== -->
+        <ImageView
+            android:id="@+id/deviceChevron"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@android:drawable/arrow_up_float"
+            android:rotation="90"
+            app:tint="@color/text_secondary"
+            android:contentDescription="Connect to device"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

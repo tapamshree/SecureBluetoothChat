@@ -83,10 +83,11 @@ object SecureMessageWrapper {
         senderAddress: String,
         sessionKey: SecretKey,
         type: String = MessageType.TEXT,
-        sequenceNum: Long = 0L
+        sequenceNum: Long = 0L,
+        messageId: String = generateMessageId()
     ): ByteArray {
         val envelope = JSONObject().apply {
-            put(FIELD_ID,        generateMessageId())
+            put(FIELD_ID,        messageId)
             put(FIELD_SENDER,    senderAddress)
             put(FIELD_TYPE,      type)
             put(FIELD_CONTENT,   content)
@@ -109,9 +110,10 @@ object SecureMessageWrapper {
     fun wrapControl(
         type: String,
         senderAddress: String,
-        sessionKey: SecretKey
+        sessionKey: SecretKey,
+        content: String = type
     ): ByteArray = wrap(
-        content = type,
+        content = content,
         senderAddress = senderAddress,
         sessionKey = sessionKey,
         type = type

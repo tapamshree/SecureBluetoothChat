@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ============================================================
+    FILE: res/drawable/bg_bubble_incoming.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        The background shape drawable for INCOMING (received) message
+        bubbles in the chat RecyclerView. Applied to the incoming
+        message container in item layouts.
+
+    WHAT THIS IS:
+        XML shape drawable (inflated as GradientDrawable) used instead
+        of a bitmap asset. This keeps rendering crisp across densities
+        and allows fast style changes via color tokens.
+
+    VISUAL DESIGN:
+        Incoming bubbles use a darker neutral surface
+        (@color/bubble_incoming) to contrast with outgoing teal bubbles.
+        Corner radii are mirrored relative to outgoing bubbles.
+
+        Corner radii:
+            Top-left      : 18dp
+            Top-right     : 18dp
+            Bottom-left   :  4dp  (directional corner / "tail" side)
+            Bottom-right  : 18dp
+
+        This mirrored geometry creates clear left/right conversation
+        direction even when avatars are absent.
+
+    UX INTENT:
+        Combined with `bg_bubble_outgoing.xml`, this drawable forms a
+        visual language users already understand from common chat apps:
+        sent message shape differs subtly from received shape.
+
+    COLOR REFERENCE:
+        @color/bubble_incoming is mapped in colors.xml to a dark
+        semantic surface token.
+
+    USAGE:
+        In chat item XML:
+            android:background="@drawable/bg_bubble_incoming"
+
+    NOTE:
+        Bubble spacing and text padding should be managed in the row
+        layout to keep drawable responsibilities focused on shape.
+    ============================================================
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+
+    <!-- Solid dark fill for received messages -->
+    <solid android:color="@color/bubble_incoming" />
+
+    <!-- Mirrored corner profile compared to outgoing bubble -->
+    <corners
+        android:topLeftRadius="18dp"
+        android:topRightRadius="18dp"
+        android:bottomLeftRadius="4dp"
+        android:bottomRightRadius="18dp" />
+
+    <!-- Explicitly no drawable padding; layout handles content spacing -->
+    <padding
+        android:left="0dp"
+        android:top="0dp"
+        android:right="0dp"
+        android:bottom="0dp" />
+
+</shape>

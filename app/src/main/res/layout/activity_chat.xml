@@ -1,0 +1,355 @@
+<!--
+    ============================================================
+    FILE: res/layout/activity_chat.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        The layout for ChatActivity — the main messaging screen.
+        This is the screen the user spends most of their time on
+        once a secure Bluetooth connection has been established.
+
+    HOW IT FITS IN THE FLOW:
+        DeviceListActivity (client taps a device)
+            OR
+        MainActivity (server receives an incoming connection)
+            → ChatActivity   ← YOU ARE HERE
+
+    WHAT HAPPENS ON THIS SCREEN:
+        1. ChatActivity starts and immediately shows the message
+           history from Room DB via ChatViewModel + LiveData
+        2. BluetoothChatService (foreground service) is already
+           running and maintaining the BT socket connection
+        3. User types a message and taps Send:
+               ChatViewModel.sendMessage(text)
+               → AESCipher.encrypt(text, sessionKey)
+               → BluetoothConnectionManager.write(encryptedBytes)
+        4. Incoming bytes arrive via MessageReceiver:
+               AESCipher.decrypt(bytes, sessionKey)
+               → ChatRepository.saveMessage()
+               → LiveData notifies ChatViewModel
+               → ChatAdapter.notifyItemInserted()
+               → RecyclerView scrolls to bottom
+        5. Connection status is shown in the toolbar subtitle
+           and updated live as the BT connection state changes
+
+    LAYOUT STRUCTURE:
+        CoordinatorLayout (root)
+        ├── AppBarLayout
+        │   └── MaterialToolbar
+        │       ├── title: remote device name
+        │       ├── subtitle: connection status (Connected/Disconnected)
+        │       └── menu: disconnect option
+        ├── ConstraintLayout (body)
+        │   ├── RecyclerView          — scrollable message list
+        │   │                           (ChatAdapter.kt)
+        │   │                           each row = item_message.xml
+        │   ├── MaterialCardView      — encryption status banner
+        │   │   └── TextView          — "AES-256 Encrypted" label
+        │   └── MaterialCardView      — message input bar (bottom)
+        │       ├── TextInputLayout   — wraps the EditText
+        │       │   └── EditText      — message typing area
+        │       └── MaterialButton    — send button (icon only)
+
+    KEY DESIGN DECISIONS:
+        - The RecyclerView is constrained top-to-bottom between
+          the AppBar and the input bar so it fills all available
+          space. As the keyboard appears, the input bar rides up
+          with it (windowSoftInputMode="adjustResize" in Manifest)
+          and the RecyclerView shrinks accordingly.
+        - The encryption banner sits just above the input bar as
+          a constant reassurance that the session is secure.
+        - The send button is an icon-only FAB-style button (no text)
+          to save horizontal space and match modern chat UI patterns.
+        - android:stackFromEnd="true" on RecyclerView makes new
+          messages appear at the bottom (set programmatically).
+        - android:transcriptMode="alwaysScroll" auto-scrolls to
+          the latest message when new ones arrive.
+
+    VIEW BINDING:
+        Accessed in ChatActivity.kt via:
+            binding = ActivityChatBinding.inflate(layoutInflater)
+        Key IDs:
+            binding.toolbar           — setSupportActionBar()
+            binding.rvMessages        — set adapter + layoutManager
+            binding.etMessage         — read text for sending
+            binding.btnSend           — click listener → sendMessage
+            binding.encryptionBanner  — always visible reminder
+            binding.connectionStatus  — shown in toolbar subtitle
+                                        (set via supportActionBar
+                                        ?.subtitle = "Connected")
+
+    MANIFEST REQUIREMENT:
+        ChatActivity must have this in AndroidManifest.xml:
+            android:windowSoftInputMode="adjustResize"
+        Without it the keyboard will cover the input bar instead
+        of pushing it up.
+    ============================================================
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    tools:context=".ui.chat.ChatActivity">
+
+
+    <!-- ========================================================
+         APP BAR + TOOLBAR
+         The toolbar shows:
+             Title    → remote device name (set in ChatActivity.kt
+                        from the BluetoothDeviceInfo passed via Intent)
+             Subtitle → live connection status string updated by
+                        observing ChatViewModel.connectionState
+             Menu     → single "Disconnect" option (menu_chat.xml)
+         ======================================================== -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/toolbar_background"
+        app:elevation="4dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/chat_title"
+            app:titleTextColor="@color/text_primary"
+            app:subtitleTextColor="@color/status_connected"
+            app:navigationIconTint="@color/text_primary"
+            style="@style/Widget.SecureBluetoothChat.Toolbar"
+            tools:subtitle="@string/status_connected" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+
+    <!-- ========================================================
+         BODY — ConstraintLayout
+         Fills the remaining space below the AppBar and contains
+         three main zones: message list, encryption banner, input bar.
+         ======================================================== -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+
+        <!-- ====================================================
+             MESSAGE LIST — RecyclerView
+             Fills all vertical space between the AppBar (top)
+             and the encryption banner (bottom). As messages
+             accumulate it becomes scrollable.
+
+             IMPORTANT ATTRIBUTES:
+             - clipToPadding="false" + paddingVertical="8dp"
+               allows the first and last messages to have breathing
+               room at the edges without clipping the scroll area
+             - nestedScrollingEnabled="true" here (unlike device
+               list) because this RecyclerView IS the primary
+               scroll container — there is no outer ScrollView
+             - stackFromEnd and reverseLayout are set to false here
+               but scrollToPosition(lastIndex) is called in
+               ChatActivity.kt whenever a new message arrives
+             ================================================== -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvMessages"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:paddingHorizontal="12dp"
+            android:clipToPadding="false"
+            android:scrollbars="vertical"
+            android:scrollbarThumbVertical="@color/divider"
+            tools:listitem="@layout/item_message"
+            tools:itemCount="6"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/encryptionBanner"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+
+        <!-- ====================================================
+             ENCRYPTION STATUS BANNER
+             A slim persistent strip just above the input bar
+             reminding both users that the session is AES-256
+             encrypted. Always visible — not dismissible.
+             The lock icon + teal text reinforce the security theme.
+             ================================================== -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/encryptionBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="4dp"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/status_encrypted_badge"
+            app:strokeWidth="1dp"
+            app:layout_constraintBottom_toTopOf="@id/inputBar"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:gravity="center_vertical">
+
+                <!--
+                    LOCK ICON
+                    Small padlock icon tinted in our "encrypted" green.
+                    Uses a built-in Android drawable as placeholder
+                    until we add a custom ic_lock vector asset.
+                -->
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@android:drawable/ic_lock_lock"
+                    app:tint="@color/status_encrypted_badge"
+                    android:contentDescription="Encrypted"
+                    android:layout_marginEnd="6dp" />
+
+                <!--
+                    ENCRYPTION LABEL
+                    Static text. Never changes — encryption is
+                    always on and cannot be disabled.
+                -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/encrypted_label"
+                    android:textAppearance="@style/TextAppearance.SecureBluetoothChat.Caption"
+                    android:textColor="@color/status_encrypted_badge"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+
+        <!-- ====================================================
+             MESSAGE INPUT BAR
+             Pinned to the bottom of the screen. Contains the
+             text input field and the send button side by side.
+
+             KEYBOARD BEHAVIOUR:
+             With windowSoftInputMode="adjustResize" in Manifest,
+             when the soft keyboard appears:
+                 - The activity window shrinks
+                 - This card rides up to sit just above the keyboard
+                 - The RecyclerView shrinks from the bottom
+             This is the correct chat-app keyboard behaviour.
+             ================================================== -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/inputBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="0dp"
+            app:cardElevation="8dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:gravity="center_vertical">
+
+                <!--
+                    TEXT INPUT LAYOUT
+                    Wraps the EditText to provide the Material
+                    outlined/filled box, floating hint, and
+                    character counter if needed later.
+                    layout_weight="1" lets it consume all
+                    remaining width after the send button.
+                -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/messageInputLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    app:boxBackgroundColor="@color/surface_variant"
+                    app:boxCornerRadiusTopStart="24dp"
+                    app:boxCornerRadiusTopEnd="24dp"
+                    app:boxCornerRadiusBottomStart="24dp"
+                    app:boxCornerRadiusBottomEnd="24dp"
+                    app:boxStrokeColor="@color/brand_primary"
+                    app:hintTextColor="@color/brand_primary"
+                    style="@style/Widget.SecureBluetoothChat.TextInputLayout">
+
+                    <!--
+                        MESSAGE EDIT TEXT
+                        Multi-line input capped at 6 lines so very
+                        long messages don't push the send button
+                        off screen. IME action is "Send" so the
+                        keyboard's bottom-right action button also
+                        triggers sendMessage() in ChatActivity.kt.
+                    -->
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etMessage"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/hint_message"
+                        android:textColor="@color/text_primary"
+                        android:textColorHint="@color/text_hint"
+                        android:textSize="15sp"
+                        android:maxLines="6"
+                        android:inputType="textMultiLine|textCapSentences"
+                        android:imeOptions="actionSend"
+                        android:background="@null"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="12dp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!--
+                    SEND BUTTON
+                    Icon-only circular button. The paper-plane /
+                    send icon uses Android's built-in arrow drawable
+                    as a placeholder until a custom vector is added.
+                    Click listener in ChatActivity.kt:
+                        binding.btnSend.setOnClickListener {
+                            val text = binding.etMessage.text.toString().trim()
+                            if (text.isNotEmpty()) {
+                                chatViewModel.sendMessage(text)
+                                binding.etMessage.text?.clear()
+                            }
+                        }
+                    Disabled (alpha 0.4) when not connected — updated
+                    by observing ChatViewModel.connectionState.
+                -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSend"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:padding="0dp"
+                    app:icon="@android:drawable/ic_menu_send"
+                    app:iconTint="@color/text_on_primary"
+                    app:iconSize="22dp"
+                    app:iconGravity="textStart"
+                    app:iconPadding="0dp"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:backgroundTint="@color/brand_primary"
+                    app:cornerRadius="26dp"
+                    android:contentDescription="@string/btn_send"
+                    style="@style/Widget.SecureBluetoothChat.Button" />
+
+            </LinearLayout>
+
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

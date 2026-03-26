@@ -1,0 +1,163 @@
+<!--
+    ============================================================
+    FILE: res/values/strings.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        Central repository for all user-facing text in the app.
+        Android best practice is to never hardcode strings directly
+        into layouts or Kotlin files. Instead, every piece of text
+        lives here and is referenced via @string/key_name in XML
+        or getString(R.string.key_name) in Kotlin.
+
+    WHY THIS MATTERS:
+        - Makes future localization (other languages) easy — just
+          add a new values-XX/ folder with a translated version
+        - Keeps UI text consistent across the whole app
+        - Allows string changes without touching layout files
+
+    USAGE IN XML:
+        android:text="@string/app_name"
+
+    USAGE IN KOTLIN:
+        getString(R.string.error_bt_disabled)
+
+    SECTIONS:
+        1. App-level strings
+        2. Splash screen
+        3. Main screen (role selection)
+        4. Device list screen
+        5. Chat screen
+        6. Settings screen
+        7. Error messages
+        8. Notification strings
+        9. Dialog buttons and confirmations
+    ============================================================
+-->
+<resources>
+
+    <!-- ========================================================
+         SECTION 1: App-Level
+         General identity strings used across the whole app.
+         ======================================================== -->
+    <string name="app_name">SecureBluetoothChat</string>
+    <string name="app_tagline">Encrypted. Private. Offline.</string>
+
+
+    <!-- ========================================================
+         SECTION 2: Splash Screen (SplashActivity)
+         Shown briefly on launch while the app initializes crypto
+         keys and checks Bluetooth state.
+         ======================================================== -->
+    <string name="splash_loading">Initializing secure environment…</string>
+
+
+    <!-- ========================================================
+         SECTION 3: Main Screen (MainActivity)
+         User picks whether to act as Server (wait for incoming
+         connection) or Client (scan and connect to another device).
+         ======================================================== -->
+    <string name="main_title">Choose Mode</string>
+    <!-- Server mode: this device listens for an incoming BT connection -->
+    <string name="btn_start_server">Wait for Connection</string>
+    <!-- Client mode: this device scans and initiates the connection -->
+    <string name="btn_start_client">Find a Device</string>
+
+
+    <!-- ========================================================
+         SECTION 4: Device List Screen (DeviceListActivity)
+         Shows paired and newly discovered nearby Bluetooth devices.
+         User taps a device to initiate a connection as Client.
+         ======================================================== -->
+    <string name="device_list_title">Select a Device</string>
+    <string name="scanning">Scanning…</string>
+    <string name="no_devices_found">No devices found</string>
+    <!-- Section header for devices already bonded with this phone -->
+    <string name="paired_devices">Paired Devices</string>
+    <!-- Section header for newly discovered devices during scan -->
+    <string name="available_devices">Available Devices</string>
+    <string name="btn_scan">Scan</string>
+    <string name="btn_stop_scan">Stop</string>
+
+
+    <!-- ========================================================
+         SECTION 5: Chat Screen (ChatActivity)
+         The main messaging interface shown once a secure BT
+         connection has been established between two devices.
+         ======================================================== -->
+    <string name="chat_title">Secure Chat</string>
+    <!-- Hint inside the message input field -->
+    <string name="hint_message">Type a message…</string>
+    <string name="btn_send">Send</string>
+    <!-- Small label shown in the UI to remind users encryption is active -->
+    <string name="encrypted_label">AES-256 Encrypted</string>
+    <!-- Connection status labels shown in the toolbar or status bar -->
+    <string name="status_connected">Connected</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_waiting">Waiting for client…</string>
+    <string name="status_error">Error: %1$s</string>
+
+
+    <!-- ========================================================
+         SECTION 6: Settings Screen (SettingsActivity / SettingsFragment)
+         Lets the user configure display name and view encryption info.
+         Uses AndroidX Preference library with PreferenceFragmentCompat.
+         ======================================================== -->
+    <string name="settings_title">Settings</string>
+    <!-- Key used to store display name in SharedPreferences -->
+    <string name="pref_display_name">Display Name</string>
+    <!-- Default value if the user hasn't set a name yet -->
+    <string name="pref_display_name_default">Anonymous</string>
+    <string name="pref_encryption_label">Encryption</string>
+    <!-- Informational only — encryption cannot be turned off -->
+    <string name="pref_encryption_summary">AES-256-GCM (always on)</string>
+    <string name="pref_clear_history">Clear Chat History</string>
+    <string name="pref_clear_history_confirm">
+        This will permanently delete all messages. Continue?
+    </string>
+
+
+    <!-- ========================================================
+         SECTION 7: Error Messages
+         Shown in Toasts, Snackbars, or AlertDialogs when something
+         goes wrong with Bluetooth or permissions.
+         ======================================================== -->
+    <!-- Device does not have a Bluetooth chip at all -->
+    <string name="error_bt_unavailable">Bluetooth is not available on this device</string>
+    <!-- Bluetooth chip exists but is currently turned off -->
+    <string name="error_bt_disabled">Please enable Bluetooth to continue</string>
+    <!-- Socket connection attempt failed (wrong device, out of range, etc.) -->
+    <string name="error_connection_failed">Connection failed. Try again.</string>
+    <!-- User denied BLUETOOTH_CONNECT or BLUETOOTH_SCAN at runtime -->
+    <string name="error_permission_denied">Bluetooth permission is required</string>
+    <string name="error_not_connected">No active secure session.</string>
+
+
+    <!-- ========================================================
+         SECTION 8: Notification Strings (NotificationHelper)
+         Used by the foreground service notification that keeps the
+         Bluetooth connection alive when the app is backgrounded.
+         Android requires a visible notification for foreground services.
+         ======================================================== -->
+    <!-- Notification channel name shown in system Settings > Notifications -->
+    <string name="notif_channel_name">SecureBluetoothChat</string>
+    <string name="notif_channel_desc">Active Bluetooth chat session</string>
+    <!-- Title and body of the persistent foreground service notification -->
+    <string name="notif_title">Secure Chat Active</string>
+    <string name="notif_text">Tap to return to your conversation</string>
+
+
+    <!-- ========================================================
+         SECTION 9: Dialog Buttons and Confirmations
+         Generic reusable labels for AlertDialog buttons and
+         any confirmation prompts throughout the app.
+         ======================================================== -->
+    <string name="btn_ok">OK</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_confirm">Confirm</string>
+    <string name="btn_disconnect">Disconnect</string>
+    <string name="disconnect_confirm">Are you sure you want to disconnect?</string>
+
+</resources>

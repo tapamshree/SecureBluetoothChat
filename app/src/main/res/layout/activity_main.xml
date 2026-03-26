@@ -1,0 +1,393 @@
+<!--
+    ============================================================
+    FILE: res/layout/activity_main.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        The layout for MainActivity — the role selection screen.
+        This is the first screen after the splash, where the user
+        decides how this device will participate in the connection:
+
+            SERVER MODE → This device waits and listens for an
+                          incoming Bluetooth connection from another
+                          device. BluetoothServer.kt opens a
+                          BluetoothServerSocket and blocks until
+                          a client connects.
+
+            CLIENT MODE → This device actively scans for nearby
+                          Bluetooth devices. Navigates to
+                          DeviceListActivity where the user picks
+                          a device to connect to.
+
+        This screen also shows the current Bluetooth state
+        (enabled/disabled) so the user knows before tapping
+        a mode button whether BT is ready.
+
+    NAVIGATION FLOW:
+        SplashActivity → MainActivity → (Server path) waits here
+                                         until client connects,
+                                         then → ChatActivity
+                       → MainActivity → (Client path)
+                                         → DeviceListActivity
+                                         → ChatActivity
+
+    LAYOUT STRUCTURE:
+        CoordinatorLayout (root — needed for Snackbar anchoring)
+        ├── AppBarLayout
+        │   └── MaterialToolbar       — title + settings menu icon
+        ├── NestedScrollView          — scrollable body content
+        │   └── ConstraintLayout     — actual content container
+        │       ├── CardView         — Bluetooth status card
+        │       │   ├── ImageView    — BT status icon
+        │       │   ├── TextView     — "Bluetooth" label
+        │       │   └── TextView     — status value (On / Off)
+        │       ├── TextView         — "Choose Mode" heading
+        │       ├── TextView         — explanatory subtitle
+        │       ├── CardView         — Server mode option card
+        │       │   ├── ImageView    — server icon
+        │       │   ├── TextView     — "Wait for Connection" title
+        │       │   ├── TextView     — description text
+        │       │   └── MaterialButton → starts server mode
+        │       └── CardView         — Client mode option card
+        │           ├── ImageView    — client/scan icon
+        │           ├── TextView     — "Find a Device" title
+        │           ├── TextView     — description text
+        │           └── MaterialButton → navigates to DeviceList
+
+    VIEW BINDING:
+        Accessed in MainActivity.kt via:
+            binding = ActivityMainBinding.inflate(layoutInflater)
+        Key bindings:
+            binding.toolbar          — setSupportActionBar(binding.toolbar)
+            binding.btStatusValue    — update with BT on/off state
+            binding.btnStartServer   — set click listener for server mode
+            binding.btnStartClient   — set click listener for client mode
+            binding.btStatusIcon     — tint green/red based on BT state
+
+    NOTES:
+        - CoordinatorLayout at root is required for Snackbars to
+          anchor correctly to the bottom of the screen
+        - NestedScrollView wraps content so small screens can scroll
+          without clipping the bottom card
+        - Both mode cards use the same visual structure for consistency
+          but have different icons, text, and button actions
+        - Actual Bluetooth enable/disable logic lives in MainActivity.kt
+    ============================================================
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    tools:context=".MainActivity">
+
+    <!-- ========================================================
+         APP BAR + TOOLBAR
+         AppBarLayout wraps the toolbar so it can coordinate with
+         scrolling content below (e.g. collapsing on scroll if
+         needed in future). For now it stays fixed at the top.
+         ======================================================== -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/toolbar_background"
+        app:elevation="4dp">
+
+        <!--
+            MATERIAL TOOLBAR
+            Replaces the default ActionBar. Registered in
+            MainActivity.kt via setSupportActionBar(binding.toolbar).
+            The settings icon menu item is inflated from
+            res/menu/menu_main.xml (created later).
+        -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/toolbar_background"
+            app:title="@string/app_name"
+            app:titleTextColor="@color/text_primary"
+            app:subtitleTextColor="@color/text_secondary"
+            style="@style/Widget.SecureBluetoothChat.Toolbar" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+
+    <!-- ========================================================
+         SCROLLABLE BODY
+         NestedScrollView handles the main content. Sits below
+         the AppBar via app:layout_behavior. The inner
+         ConstraintLayout does the actual positioning of cards.
+         ======================================================== -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="32dp">
+
+            <!-- ================================================
+                 BLUETOOTH STATUS CARD
+                 Shows whether Bluetooth is currently on or off.
+                 MainActivity.kt observes the BT adapter state and
+                 updates btStatusValue text and btStatusIcon tint:
+                     ON  → green text + green icon
+                     OFF → red text + red icon + show enable prompt
+                 ================================================ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btStatusCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                android:layout_marginBottom="28dp"
+                app:strokeColor="@color/divider"
+                app:strokeWidth="1dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
+
+                    <!--
+                        BT STATUS ICON
+                        Uses the built-in Android Bluetooth icon as
+                        placeholder. Replace with a custom drawable
+                        later. Tint is updated in MainActivity.kt.
+                    -->
+                    <ImageView
+                        android:id="@+id/btStatusIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@android:drawable/stat_sys_data_bluetooth"
+                        app:tint="@color/status_connected"
+                        android:contentDescription="Bluetooth status icon"
+                        android:layout_marginEnd="12dp" />
+
+                    <!-- "Bluetooth" static label -->
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Bluetooth"
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodyMedium"
+                        android:textStyle="bold" />
+
+                    <!--
+                        BT STATUS VALUE
+                        Dynamic text updated from MainActivity.kt.
+                        Shows "On" (green) or "Off" (red).
+                        tools:text shows a preview in Android Studio.
+                    -->
+                    <TextView
+                        android:id="@+id/btStatusValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodyMedium"
+                        android:textColor="@color/status_connected"
+                        android:textStyle="bold"
+                        tools:text="On" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+            <!-- ================================================
+                 HEADING — "Choose Mode"
+                 Large title telling the user what this screen is for.
+                 ================================================ -->
+            <TextView
+                android:id="@+id/headingTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/main_title"
+                android:textAppearance="@style/TextAppearance.SecureBluetoothChat.HeadlineLarge"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginBottom="8dp"
+                app:layout_constraintTop_toBottomOf="@id/btStatusCard"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!--
+                HEADING SUBTITLE
+                Brief explanation of what "Server" and "Client" mean
+                in plain language so non-technical users aren't confused.
+            -->
+            <TextView
+                android:id="@+id/headingSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="One device waits, the other connects. Both must be paired via system Bluetooth settings first."
+                android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodySmall"
+                android:textColor="@color/text_secondary"
+                android:lineSpacingMultiplier="1.4"
+                android:layout_marginBottom="24dp"
+                app:layout_constraintTop_toBottomOf="@id/headingTitle"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+
+            <!-- ================================================
+                 SERVER MODE CARD
+                 Tapping "Wait for Connection" triggers
+                 MainActivity.kt to start BluetoothServer and
+                 display a waiting dialog until a client connects.
+                 ================================================ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/serverCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/brand_primary"
+                app:strokeWidth="1dp"
+                android:layout_marginBottom="16dp"
+                app:layout_constraintTop_toBottomOf="@id/headingSubtitle"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Server icon -->
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@android:drawable/ic_menu_upload"
+                        app:tint="@color/brand_primary"
+                        android:contentDescription="Server mode icon"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Card title -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_start_server"
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.TitleMedium"
+                        android:textSize="18sp"
+                        android:layout_marginBottom="6dp" />
+
+                    <!-- Card description -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="This device will listen for an incoming connection. Keep the screen on and stay nearby."
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodySmall"
+                        android:lineSpacingMultiplier="1.4"
+                        android:layout_marginBottom="20dp" />
+
+                    <!--
+                        SERVER BUTTON
+                        Click handled in MainActivity.kt.
+                        Calls viewModel.startServer() or directly
+                        invokes BluetoothServer logic.
+                    -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStartServer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_start_server"
+                        style="@style/Widget.SecureBluetoothChat.Button" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+            <!-- ================================================
+                 CLIENT MODE CARD
+                 Tapping "Find a Device" navigates to
+                 DeviceListActivity where the user picks a paired
+                 or discovered device to connect to.
+                 ================================================ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/clientCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/divider"
+                app:strokeWidth="1dp"
+                app:layout_constraintTop_toBottomOf="@id/serverCard"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- Client icon -->
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:src="@android:drawable/ic_menu_search"
+                        app:tint="@color/text_secondary"
+                        android:contentDescription="Client mode icon"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Card title -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_start_client"
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.TitleMedium"
+                        android:textSize="18sp"
+                        android:layout_marginBottom="6dp" />
+
+                    <!-- Card description -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Scan for nearby devices and connect to one that is already waiting. Both devices must be paired first."
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodySmall"
+                        android:lineSpacingMultiplier="1.4"
+                        android:layout_marginBottom="20dp" />
+
+                    <!--
+                        CLIENT BUTTON
+                        Click handled in MainActivity.kt.
+                        Starts DeviceListActivity via Intent.
+                    -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnStartClient"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_start_client"
+                        style="@style/Widget.SecureBluetoothChat.Button.Outlined" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

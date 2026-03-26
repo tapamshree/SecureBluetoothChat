@@ -101,7 +101,7 @@ class AESCipher {
      * @throws AESCipherException if decryption or authentication fails.
      */
     fun decrypt(encryptedBytes: ByteArray, key: SecretKey): String {
-        return decrypt(encryptedBytes, key).toString(Charsets.UTF_8)
+        return decryptInternal(encryptedBytes, key).toString(Charsets.UTF_8)
     }
 
     /**
@@ -186,7 +186,7 @@ class AESCipher {
      * Internal decrypt that returns ByteArray (avoids double charset conversion).
      * Routes through [decryptToBytes] for all validation and cipher logic.
      */
-    private fun decrypt(encryptedBytes: ByteArray, key: SecretKey): ByteArray {
+    private fun decryptInternal(encryptedBytes: ByteArray, key: SecretKey): ByteArray {
         return decryptToBytes(encryptedBytes, key)
     }
 }

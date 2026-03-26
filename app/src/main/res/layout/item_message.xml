@@ -1,0 +1,309 @@
+<!--
+    ============================================================
+    FILE: res/layout/item_message.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        The row layout for a single chat message bubble in the
+        RecyclerView on ChatActivity. This layout is inflated by
+        ChatAdapter.kt for every message in the conversation —
+        both sent (outgoing) and received (incoming).
+
+    WHO USES THIS:
+        ChatAdapter.kt inflates this layout inside:
+            onCreateViewHolder() → ItemMessageBinding.inflate()
+        Then binds data inside:
+            onBindViewHolder() → binds a ChatMessage object
+
+    WHAT DATA COMES FROM ChatMessage:
+        data class ChatMessage(
+            val id: Long,
+            val content: String,      → binding.messageText
+            val timestamp: Long,      → binding.messageTime (formatted)
+            val isOutgoing: Boolean,  → drives left/right alignment
+            val status: MessageStatus → drives statusIcon visibility
+                                        (SENDING, SENT, DELIVERED, FAILED)
+        )
+
+    THE OUTGOING vs INCOMING CHALLENGE:
+        In most chat apps, outgoing messages align right (teal bubble)
+        and incoming messages align left (gray bubble). Android XML
+        cannot conditionally flip alignment based on data — that logic
+        lives in the adapter. We solve this with a single layout that
+        contains BOTH a left-aligned and a right-aligned bubble group,
+        and the adapter shows one while hiding the other:
+
+            isOutgoing = true  → outgoingContainer VISIBLE
+                                  incomingContainer GONE
+            isOutgoing = false → incomingContainer VISIBLE
+                                  outgoingContainer GONE
+
+        This is simpler and more performant than using two separate
+        ViewHolder types with getItemViewType(), because the layout
+        structure is identical — only alignment and color differ.
+
+    LAYOUT STRUCTURE:
+        FrameLayout (root — full width, neutral container)
+        ├── LinearLayout (outgoingContainer) — RIGHT aligned
+        │   └── LinearLayout (bubble)
+        │       ├── TextView   — message text content
+        │       └── LinearLayout (meta row)
+        │           ├── TextView   — timestamp (e.g. "14:32")
+        │           └── ImageView  — delivery status icon
+        │                           (sending/sent/delivered/failed)
+        └── LinearLayout (incomingContainer) — LEFT aligned
+            └── LinearLayout (bubble)
+                ├── TextView   — message text content
+                └── TextView   — timestamp
+
+    WHY FrameLayout AS ROOT:
+        FrameLayout is the lightest possible root view — it has
+        no layout logic of its own. Both child LinearLayouts
+        (outgoing and incoming) use match_parent width and their
+        own gravity (end vs start) to position themselves.
+        This avoids a redundant ConstraintLayout at the root level.
+
+    BUBBLE SHAPE:
+        Bubbles use a GradientDrawable background defined inline
+        via a background tint + corner radius. Outgoing bubbles
+        have a flat edge on the bottom-right (chat convention for
+        sent messages) and incoming on the bottom-left. This is
+        achieved with asymmetric corner radii set programmatically
+        in ChatAdapter.kt using MaterialShapeDrawable, or simply
+        uniform 18dp corners for simplicity in this version.
+
+    DELIVERY STATUS ICONS (outgoing only):
+        ✓  (single tick)  → SENT       (message left this device)
+        ✓✓ (double tick)  → DELIVERED  (remote device received it)
+        ⟳  (spinner)      → SENDING    (in transit)
+        ✕  (cross)        → FAILED     (send error)
+        These use built-in Android drawables as placeholders.
+        Custom vector assets should replace them later.
+
+    MAX WIDTH CONSTRAINT:
+        Bubbles are constrained to 80% of screen width via
+        layout_weight tricks inside the LinearLayout so that
+        long messages don't span the full screen width —
+        that would look unnatural in a chat UI.
+
+    VIEW BINDING:
+        Accessed in ChatAdapter.kt via:
+            ItemMessageBinding.inflate(inflater, parent, false)
+        Key IDs:
+            binding.outgoingContainer  — show/hide for outgoing
+            binding.incomingContainer  — show/hide for incoming
+            binding.outgoingText       — outgoing message content
+            binding.outgoingTime       — outgoing timestamp
+            binding.outgoingStatus     — delivery status icon
+            binding.incomingText       — incoming message content
+            binding.incomingTime       — incoming timestamp
+    ============================================================
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="4dp"
+    android:paddingVertical="3dp">
+
+    <!--
+        ══════════════════════════════════════════════════════
+        OUTGOING MESSAGE CONTAINER (RIGHT ALIGNED)
+        Visible when ChatMessage.isOutgoing == true.
+        The outer LinearLayout is full width with gravity=end
+        so the bubble hugs the right edge.
+        The inner spacer (weight=1) pushes the bubble rightward
+        and enforces the 80% max width rule.
+        ══════════════════════════════════════════════════════
+    -->
+    <LinearLayout
+        android:id="@+id/outgoingContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:visibility="visible"
+        tools:visibility="visible">
+
+        <!--
+            LEFT SPACER — weight=1 in a horizontal LinearLayout
+            means this invisible view consumes 20% of the width,
+            forcing the bubble (weight=4) to be at most 80% wide.
+            This is the simplest way to enforce max bubble width
+            without a custom view or ConstraintLayout percentage.
+        -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+        <!--
+            OUTGOING BUBBLE
+            Teal background (bubble_outgoing) with rounded corners.
+            Contains message text on top and a meta row (time +
+            delivery status icon) below, right-aligned.
+        -->
+        <LinearLayout
+            android:id="@+id/outgoingBubble"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:orientation="vertical"
+            android:background="@drawable/bg_bubble_outgoing"
+            android:padding="10dp">
+
+            <!--
+                OUTGOING MESSAGE TEXT
+                The decrypted plaintext content of the message.
+                White text on teal background for contrast.
+                lineSpacingMultiplier makes multi-line messages
+                more readable with slight extra line height.
+            -->
+            <TextView
+                android:id="@+id/outgoingText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/bubble_outgoing_text"
+                android:textSize="15sp"
+                android:lineSpacingMultiplier="1.3"
+                android:layout_marginBottom="4dp"
+                tools:text="Hey! This message is encrypted 🔒" />
+
+            <!--
+                META ROW — timestamp + delivery status icon
+                Right-aligned so they sit at the bottom-right
+                corner of the bubble, which is the standard
+                WhatsApp/Telegram pattern users expect.
+            -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_gravity="end">
+
+                <!--
+                    OUTGOING TIMESTAMP
+                    Formatted in ChatAdapter.kt from the Unix
+                    timestamp stored in ChatMessage.timestamp:
+                        val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+                        binding.outgoingTime.text = sdf.format(Date(message.timestamp))
+                    Small and semi-transparent so it doesn't
+                    compete with the message content.
+                -->
+                <TextView
+                    android:id="@+id/outgoingTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/bubble_timestamp"
+                    android:textSize="10sp"
+                    android:layout_marginEnd="4dp"
+                    tools:text="14:32" />
+
+                <!--
+                    DELIVERY STATUS ICON
+                    Updated in ChatAdapter.kt based on
+                    ChatMessage.status enum:
+                        SENDING   → ic_clock  (awaiting BT write)
+                        SENT      → ic_check  (written to socket)
+                        DELIVERED → ic_check_double (ACK received)
+                        FAILED    → ic_error  (write failed)
+                    Uses built-in Android drawables as placeholders.
+                    Replace with custom vector assets for polish.
+                -->
+                <ImageView
+                    android:id="@+id/outgoingStatus"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@android:drawable/checkbox_on_background"
+                    app:tint="@color/bubble_timestamp"
+                    android:contentDescription="Message status"
+                    android:scaleType="fitCenter" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+
+    <!--
+        ══════════════════════════════════════════════════════
+        INCOMING MESSAGE CONTAINER (LEFT ALIGNED)
+        Visible when ChatMessage.isOutgoing == false.
+        Mirror image of the outgoing container — spacer is
+        on the RIGHT this time so the bubble hugs the left edge.
+        ══════════════════════════════════════════════════════
+    -->
+    <LinearLayout
+        android:id="@+id/incomingContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="start"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <!--
+            INCOMING BUBBLE
+            Dark navy background (bubble_incoming) with rounded
+            corners. No delivery status icon — we only show
+            delivery state for messages WE sent, not received ones
+            (we already know we received them if they appear here).
+        -->
+        <LinearLayout
+            android:id="@+id/incomingBubble"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:orientation="vertical"
+            android:background="@drawable/bg_bubble_incoming"
+            android:padding="10dp">
+
+            <!--
+                INCOMING MESSAGE TEXT
+                Same size and line spacing as outgoing text
+                for visual consistency — only color differs.
+            -->
+            <TextView
+                android:id="@+id/incomingText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/bubble_incoming_text"
+                android:textSize="15sp"
+                android:lineSpacingMultiplier="1.3"
+                android:layout_marginBottom="4dp"
+                tools:text="Received and decrypted successfully!" />
+
+            <!--
+                INCOMING TIMESTAMP
+                Left-aligned (layout_gravity="start") to match
+                the left-side bubble convention. No status icon
+                for incoming messages.
+            -->
+            <TextView
+                android:id="@+id/incomingTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/bubble_timestamp"
+                android:textSize="10sp"
+                android:layout_gravity="start"
+                tools:text="14:33" />
+
+        </LinearLayout>
+
+        <!--
+            RIGHT SPACER — same weight trick as outgoing side
+            but mirrored. Forces bubble to max 80% width from left.
+        -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+
+    </LinearLayout>
+
+</FrameLayout>

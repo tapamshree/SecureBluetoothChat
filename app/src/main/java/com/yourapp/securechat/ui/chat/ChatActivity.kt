@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
+import android.view.Menu
+import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -16,82 +18,76 @@ import com.yourapp.securechat.data.repository.ChatRepository
 import com.yourapp.securechat.databinding.ActivityChatBinding
 import com.yourapp.securechat.service.BluetoothChatService
 import com.yourapp.securechat.service.BluetoothChatService.ServiceState
-import com.yourapp.securechat.utils.Extensions.hide
-import com.yourapp.securechat.utils.Extensions.show
 import com.yourapp.securechat.utils.Extensions.toast
-import com.yourapp.securechat.utils.Logger
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-/**
- * The main chat screen.
- *
- * Binds to [BluetoothChatService] to:
- *  - Observe [ServiceState] and update the connection status banner
- *  - Send outgoing messages via [BluetoothChatService.sendMessage]
- *
- * Observes [ChatViewModel] for the full message list from Room.
- */
 class ChatActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "ChatActivity"
+        private const val PREF_FILE = "secure_chat_prefs"
+        private const val KEY_DISPLAY_NAME = "display_name"
+
+        const val EXTRA_DEVICE_ADDRESS = "extra_device_address"
+        const val EXTRA_DEVICE_NAME = "extra_device_name"
+    }
 
     private lateinit var binding: ActivityChatBinding
 
-    private val deviceAddress: String by lazy {
-        intent.getStringExtra(EXTRA_DEVICE_ADDRESS) ?: ""
+    private val initialDeviceAddress: String by lazy {
+        intent.getStringExtra(EXTRA_DEVICE_ADDRESS).orEmpty()
     }
-    private val deviceName: String by lazy {
-        intent.getStringExtra(EXTRA_DEVICE_NAME) ?: "Unknown"
+    private val initialDeviceName: String by lazy {
+        intent.getStringExtra(EXTRA_DEVICE_NAME) ?: getString(R.string.chat_title)
     }
-
-    // ── ViewModel ─────────────────────────────────────────────────────────────
 
     private val viewModel: ChatViewModel by viewModels {
         val db = AppDatabase.getInstance(applicationContext)
         ChatViewModel.Factory(
             chatRepository = ChatRepository(db.messageDao()),
-            deviceAddress  = deviceAddress
+            deviceAddress = initialDeviceAddress
         )
     }
 
-    // ── Adapter ───────────────────────────────────────────────────────────────
-
     private lateinit var chatAdapter: ChatAdapter
-
-    // ── Service binding ───────────────────────────────────────────────────────
-
     private var chatService: BluetoothChatService? = null
     private var isBound = false
+    private var serviceStateJob: Job? = null
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
             chatService = (binder as BluetoothChatService.LocalBinder).getService()
             isBound = true
-            Logger.d(TAG, "Service bound")
             observeServiceState()
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
             chatService = null
             isBound = false
-            Logger.d(TAG, "Service unbound")
+            updateConnectionUi(ServiceState.Disconnected)
         }
     }
-
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityChatBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        viewModel.myDisplayName = getSharedPreferences(PREF_FILE, Context.MODE_PRIVATE)
+            .getString(KEY_DISPLAY_NAME, "Me")
+            .orEmpty()
+            .ifBlank { "Me" }
+
         setupToolbar()
         setupRecyclerView()
         setupSendButton()
         observeMessages()
+        updateConnectionUi(ServiceState.Disconnected)
     }
 
     override fun onStart() {
         super.onStart()
-        // Bind to the already-running BluetoothChatService
         Intent(this, BluetoothChatService::class.java).also { intent ->
             bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         }
@@ -99,38 +95,61 @@ class ChatActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        serviceStateJob?.cancel()
+        serviceStateJob = null
         if (isBound) {
             unbindService(serviceConnection)
             isBound = false
         }
     }
 
-    // ── Setup ─────────────────────────────────────────────────────────────────
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_chat, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                onBackPressedDispatcher.onBackPressed()
+                true
+            }
+            R.id.action_disconnect -> {
+                chatService?.disconnectAndStop()
+                finish()
+                true
+            }
+            R.id.action_clear_chat -> {
+                viewModel.clearConversation()
+                toast(getString(R.string.pref_clear_history))
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
 
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.apply {
-            title = deviceName
+            title = initialDeviceName
             setDisplayHomeAsUpEnabled(true)
         }
-        binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
     }
 
     private fun setupRecyclerView() {
         chatAdapter = ChatAdapter()
-        val layoutManager = LinearLayoutManager(this).apply {
-            stackFromEnd = true   // newest messages at the bottom
-        }
         binding.rvMessages.apply {
-            this.layoutManager = layoutManager
+            layoutManager = LinearLayoutManager(this@ChatActivity).apply {
+                stackFromEnd = true
+            }
             adapter = chatAdapter
         }
     }
 
     private fun setupSendButton() {
         binding.btnSend.setOnClickListener {
-            val text = binding.etMessage.text?.toString()?.trim() ?: return@setOnClickListener
-            if (text.isEmpty()) return@setOnClickListener
+            val text = binding.etMessage.text?.toString()?.trim().orEmpty()
+            if (text.isBlank()) return@setOnClickListener
 
             val service = chatService
             if (service == null) {
@@ -138,21 +157,17 @@ class ChatActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            val displayName = viewModel.myDisplayName
-            service.sendMessage(text, displayName)
+            service.sendMessage(text, viewModel.myDisplayName)
             binding.etMessage.setText("")
         }
     }
-
-    // ── Observers ─────────────────────────────────────────────────────────────
 
     private fun observeMessages() {
         lifecycleScope.launch {
             viewModel.messages.collect { messages ->
                 chatAdapter.submitList(messages) {
-                    // Scroll to bottom after list update
                     if (messages.isNotEmpty()) {
-                        binding.rvMessages.scrollToPosition(messages.size - 1)
+                        binding.rvMessages.scrollToPosition(messages.lastIndex)
                     }
                 }
             }
@@ -161,44 +176,48 @@ class ChatActivity : AppCompatActivity() {
 
     private fun observeServiceState() {
         val service = chatService ?: return
-        lifecycleScope.launch {
+        serviceStateJob?.cancel()
+        serviceStateJob = lifecycleScope.launch {
             service.serviceState.collect { state ->
-                updateStatusBanner(state)
+                updateConnectionUi(state)
             }
         }
     }
 
-    private fun updateStatusBanner(state: ServiceState) {
+    private fun updateConnectionUi(state: ServiceState) {
         when (state) {
             is ServiceState.Connected -> {
-                binding.tvConnectionStatus.hide()
+                supportActionBar?.title = state.deviceName
+                supportActionBar?.subtitle = getString(R.string.status_connected)
+                binding.btnSend.isEnabled = true
+                binding.etMessage.isEnabled = true
+                viewModel.setConversationDevice(state.deviceAddress)
             }
             is ServiceState.Connecting -> {
-                binding.tvConnectionStatus.show()
-                binding.tvConnectionStatus.text = getString(R.string.status_connecting)
+                supportActionBar?.subtitle = getString(R.string.status_connecting)
+                binding.btnSend.isEnabled = false
+                binding.etMessage.isEnabled = false
             }
             ServiceState.WaitingForClient -> {
-                binding.tvConnectionStatus.show()
-                binding.tvConnectionStatus.text = getString(R.string.status_waiting)
+                supportActionBar?.subtitle = getString(R.string.status_waiting)
+                binding.btnSend.isEnabled = false
+                binding.etMessage.isEnabled = false
             }
-            is ServiceState.Disconnected -> {
-                binding.tvConnectionStatus.show()
-                binding.tvConnectionStatus.text = getString(R.string.status_disconnected)
+            ServiceState.Disconnected -> {
+                supportActionBar?.subtitle = getString(R.string.status_disconnected)
                 binding.btnSend.isEnabled = false
                 binding.etMessage.isEnabled = false
             }
             is ServiceState.Error -> {
-                binding.tvConnectionStatus.show()
-                binding.tvConnectionStatus.text = getString(R.string.status_error, state.message)
-                toast(state.message)
+                supportActionBar?.subtitle = getString(R.string.status_error, state.message)
+                binding.btnSend.isEnabled = false
+                binding.etMessage.isEnabled = false
             }
-            ServiceState.Idle -> { /* no-op */ }
+            ServiceState.Idle -> {
+                supportActionBar?.subtitle = null
+                binding.btnSend.isEnabled = false
+                binding.etMessage.isEnabled = false
+            }
         }
-    }
-
-    companion object {
-        private const val TAG = "ChatActivity"
-        const val EXTRA_DEVICE_ADDRESS = "extra_device_address"
-        const val EXTRA_DEVICE_NAME    = "extra_device_name"
     }
 }

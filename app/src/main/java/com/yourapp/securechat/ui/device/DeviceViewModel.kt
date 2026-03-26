@@ -2,10 +2,11 @@ package com.yourapp.securechat.ui.device
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.yourapp.securechat.bluetooth.BluetoothController
 import com.yourapp.securechat.bluetooth.BluetoothDeviceScanner
-import com.yourapp.securechat.data.model.BluetoothDeviceModel
+import com.yourapp.securechat.data.model.BluetoothDeviceInfo
 import com.yourapp.securechat.utils.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,18 +24,19 @@ class DeviceViewModel(
 
     // ── Paired devices ────────────────────────────────────────────────────────
 
-    private val _pairedDevices = MutableStateFlow<List<BluetoothDeviceModel>>(emptyList())
-    val pairedDevices: StateFlow<List<BluetoothDeviceModel>> = _pairedDevices
+    private val _pairedDevices = MutableStateFlow<List<BluetoothDeviceInfo>>(emptyList())
+    val pairedDevices: StateFlow<List<BluetoothDeviceInfo>> = _pairedDevices
 
     // ── Discovered devices (live from scanner) ────────────────────────────────
 
-    val discoveredDevices: StateFlow<List<BluetoothDeviceModel>> = scanner.discoveredDevices
-        .map { list -> list.map { BluetoothDeviceModel.fromAndroidDevice(it) } }
+    val discoveredDevices: StateFlow<List<BluetoothDeviceInfo>> = scanner.discoveredDevices.asFlow()
+        .map { list -> list.map { BluetoothDeviceInfo.fromBluetoothDevice(it) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // ── Scan state ────────────────────────────────────────────────────────────
 
-    val isScanning: StateFlow<Boolean> = scanner.isScanning
+    val isScanning: StateFlow<Boolean> = scanner.isScanning.asFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     // ── Error messages ────────────────────────────────────────────────────────
 
@@ -45,7 +47,6 @@ class DeviceViewModel(
 
     init {
         controller.register()
-        scanner.register()
         loadPairedDevices()
     }
 
@@ -55,7 +56,7 @@ class DeviceViewModel(
         viewModelScope.launch {
             runCatching {
                 val paired = scanner.getPairedDevices()
-                    .map { BluetoothDeviceModel.fromAndroidDevice(it) }
+                    .map { BluetoothDeviceInfo.fromBluetoothDevice(it) }
                 _pairedDevices.value = paired
                 Logger.d(TAG, "Loaded ${paired.size} paired devices")
             }.onFailure { e ->
@@ -71,12 +72,12 @@ class DeviceViewModel(
             return
         }
         Logger.d(TAG, "Starting scan")
-        scanner.startScan()
+        scanner.startDiscovery()
     }
 
     fun stopScan() {
         Logger.d(TAG, "Stopping scan")
-        scanner.stopScan()
+        scanner.stopDiscovery()
     }
 
     // ── Cleanup ───────────────────────────────────────────────────────────────

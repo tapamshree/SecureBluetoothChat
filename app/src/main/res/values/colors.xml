@@ -1,0 +1,203 @@
+<!--
+    ============================================================
+    FILE: res/values/colors.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        Defines the entire color palette for the app in one place.
+        All colors used in layouts, themes, and drawables should
+        reference this file via @color/key_name — never hardcode
+        hex values directly in layout files.
+
+    WHY THIS MATTERS:
+        - Single source of truth for the visual identity
+        - Changing a color here updates it everywhere instantly
+        - Makes theming (e.g. dark mode) straightforward to manage
+
+    USAGE IN XML LAYOUTS:
+        android:background="@color/surface"
+        android:textColor="@color/text_primary"
+
+    USAGE IN THEMES (themes.xml):
+        <item name="colorPrimary">@color/brand_primary</item>
+
+    USAGE IN KOTLIN:
+        ContextCompat.getColor(context, R.color.brand_primary)
+
+    DESIGN PHILOSOPHY:
+        The color system is split into two layers:
+          1. PALETTE  — raw named hex values (the "what")
+          2. SEMANTIC — meaningful role-based aliases (the "why")
+
+        UI components always reference SEMANTIC colors, not palette
+        colors directly. This makes dark mode or rebranding trivial
+        because only the semantic mappings need to change.
+
+    COLOR THEME:
+        Dark navy/teal — chosen to convey security and privacy.
+        Green accents signal encrypted/safe state.
+        Red accents signal errors or disconnection.
+
+    SECTIONS:
+        1. Raw Palette (do not use directly in layouts)
+        2. Semantic — Brand & Primary actions
+        3. Semantic — Backgrounds & Surfaces
+        4. Semantic — Text
+        5. Semantic — Chat bubbles
+        6. Semantic — Status indicators
+        7. Semantic — Errors and warnings
+    ============================================================
+-->
+<resources>
+
+    <!-- ========================================================
+         SECTION 1: Raw Palette
+         These are the actual hex values. Think of these as the
+         "paint cans". Do not reference these directly in layouts
+         or Kotlin — always go through the semantic layer below.
+         ======================================================== -->
+
+    <!-- Navy family — primary brand dark tones -->
+    <color name="palette_navy_900">#0A0E1A</color>
+    <color name="palette_navy_800">#111827</color>
+    <color name="palette_navy_700">#1C2535</color>
+    <color name="palette_navy_600">#243044</color>
+    <color name="palette_navy_500">#2E3E58</color>
+
+    <!-- Teal family — primary interactive/accent tones -->
+    <color name="palette_teal_400">#2DD4BF</color>
+    <color name="palette_teal_500">#14B8A6</color>
+    <color name="palette_teal_600">#0D9488</color>
+    <color name="palette_teal_700">#0F766E</color>
+
+    <!-- Green family — success / encrypted / connected states -->
+    <color name="palette_green_400">#4ADE80</color>
+    <color name="palette_green_500">#22C55E</color>
+    <color name="palette_green_600">#16A34A</color>
+
+    <!-- Red family — errors / disconnected states -->
+    <color name="palette_red_400">#F87171</color>
+    <color name="palette_red_500">#EF4444</color>
+    <color name="palette_red_600">#DC2626</color>
+
+    <!-- Amber — warnings -->
+    <color name="palette_amber_400">#FBBF24</color>
+    <color name="palette_amber_500">#F59E0B</color>
+
+    <!-- Neutral grays — text and dividers -->
+    <color name="palette_gray_100">#F3F4F6</color>
+    <color name="palette_gray_300">#D1D5DB</color>
+    <color name="palette_gray_400">#9CA3AF</color>
+    <color name="palette_gray_500">#6B7280</color>
+    <color name="palette_gray_600">#4B5563</color>
+
+    <!-- Pure values -->
+    <color name="palette_white">#FFFFFF</color>
+    <color name="palette_black">#000000</color>
+    <color name="palette_transparent">#00000000</color>
+
+
+    <!-- ========================================================
+         SECTION 2: Semantic — Brand & Primary Actions
+         Used for buttons, FABs, highlighted interactive elements,
+         and Material theme attributes (colorPrimary, etc.)
+         ======================================================== -->
+
+    <!-- The main brand color — used for primary buttons, toolbar, FAB -->
+    <color name="brand_primary">@color/palette_teal_500</color>
+    <!-- Darker shade for pressed states or toolbar background -->
+    <color name="brand_primary_dark">@color/palette_teal_700</color>
+    <!-- Lighter shade for hover/ripple highlights -->
+    <color name="brand_primary_light">@color/palette_teal_400</color>
+    <!-- Used for secondary/outlined buttons and accent elements -->
+    <color name="brand_secondary">@color/palette_navy_500</color>
+
+
+    <!-- ========================================================
+         SECTION 3: Semantic — Backgrounds & Surfaces
+         Layered surface system so cards and sheets feel elevated
+         above the base background even in a dark theme.
+         ======================================================== -->
+
+    <!-- Root window/screen background -->
+    <color name="background">@color/palette_navy_900</color>
+    <!-- Cards, list items, bottom sheets — one level above background -->
+    <color name="surface">@color/palette_navy_800</color>
+    <!-- Input fields, secondary cards — two levels above background -->
+    <color name="surface_variant">@color/palette_navy_700</color>
+    <!-- Thin dividers and separators between list items -->
+    <color name="divider">@color/palette_navy_600</color>
+    <!-- Toolbar / AppBar background -->
+    <color name="toolbar_background">@color/palette_navy_800</color>
+
+
+    <!-- ========================================================
+         SECTION 4: Semantic — Text
+         Hierarchy of text emphasis levels to create visual depth.
+         ======================================================== -->
+
+    <!-- Main body text, titles, message content -->
+    <color name="text_primary">@color/palette_white</color>
+    <!-- Subtitles, timestamps, device addresses, secondary info -->
+    <color name="text_secondary">@color/palette_gray_400</color>
+    <!-- Placeholder text inside input fields -->
+    <color name="text_hint">@color/palette_gray_500</color>
+    <!-- Text on top of colored buttons (e.g. white on teal) -->
+    <color name="text_on_primary">@color/palette_white</color>
+    <!-- Links or tappable text -->
+    <color name="text_link">@color/palette_teal_400</color>
+    <!-- Disabled / grayed-out text -->
+    <color name="text_disabled">@color/palette_gray_600</color>
+
+
+    <!-- ========================================================
+         SECTION 5: Semantic — Chat Bubbles
+         Two-tone bubble system: outgoing messages (sent by this
+         device) use brand teal; incoming messages use a neutral
+         dark surface so the conversation direction is always clear.
+         ======================================================== -->
+
+    <!-- Background of messages sent by this device -->
+    <color name="bubble_outgoing">@color/palette_teal_600</color>
+    <!-- Text color inside outgoing bubbles -->
+    <color name="bubble_outgoing_text">@color/palette_white</color>
+    <!-- Background of messages received from the remote device -->
+    <color name="bubble_incoming">@color/palette_navy_600</color>
+    <!-- Text color inside incoming bubbles -->
+    <color name="bubble_incoming_text">@color/palette_gray_100</color>
+    <!-- Timestamp text below each bubble -->
+    <color name="bubble_timestamp">@color/palette_gray_400</color>
+
+
+    <!-- ========================================================
+         SECTION 6: Semantic — Status Indicators
+         Small colored dots or labels that show connection state.
+         Green = connected/encrypted, Amber = connecting, Red = off.
+         ======================================================== -->
+
+    <!-- Device is connected and session is encrypted -->
+    <color name="status_connected">@color/palette_green_500</color>
+    <!-- Connection attempt in progress -->
+    <color name="status_connecting">@color/palette_amber_400</color>
+    <!-- No active connection -->
+    <color name="status_disconnected">@color/palette_red_400</color>
+    <!-- Small "lock" / encryption badge shown in chat toolbar -->
+    <color name="status_encrypted_badge">@color/palette_green_400</color>
+
+
+    <!-- ========================================================
+         SECTION 7: Semantic — Errors and Warnings
+         Used in Snackbars, error text under input fields, and
+         AlertDialog destructive action buttons.
+         ======================================================== -->
+
+    <color name="error">@color/palette_red_500</color>
+    <color name="error_dark">@color/palette_red_600</color>
+    <color name="warning">@color/palette_amber_500</color>
+    <!-- Background of error Snackbars -->
+    <color name="snackbar_error_background">@color/palette_red_600</color>
+    <!-- Background of success Snackbars -->
+    <color name="snackbar_success_background">@color/palette_green_600</color>
+
+</resources>

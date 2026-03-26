@@ -1,79 +1,46 @@
 package com.yourapp.securechat.ui.chat
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import com.yourapp.securechat.data.ChatMessage
-import com.yourapp.securechat.databinding.ItemMessageReceivedBinding
-import com.yourapp.securechat.databinding.ItemMessageSentBinding
+import com.yourapp.securechat.data.model.ChatMessage
+import com.yourapp.securechat.databinding.ItemMessageBinding
 import com.yourapp.securechat.utils.Extensions.toFormattedTime
 
 /**
- * RecyclerView adapter for [ChatMessage] items.
- *
- * Two view types:
- *  - [VIEW_TYPE_SENT]     — messages sent by the local user (aligned right)
- *  - [VIEW_TYPE_RECEIVED] — messages received from the remote device (aligned left)
+ * RecyclerView adapter for [ChatMessage] rows.
+ * Uses a single row layout (`item_message.xml`) and toggles outgoing/incoming containers.
  */
-class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(DiffCallback) {
+class ChatAdapter : ListAdapter<ChatMessage, ChatAdapter.MessageViewHolder>(DiffCallback) {
 
-    // ── View types ────────────────────────────────────────────────────────────
-
-    override fun getItemViewType(position: Int): Int =
-        if (getItem(position).isMine) VIEW_TYPE_SENT else VIEW_TYPE_RECEIVED
-
-    // ── ViewHolders ───────────────────────────────────────────────────────────
-
-    inner class SentViewHolder(
-        private val binding: ItemMessageSentBinding
+    inner class MessageViewHolder(
+        private val binding: ItemMessageBinding
     ) : RecyclerView.ViewHolder(binding.root) {
-
         fun bind(message: ChatMessage) {
-            binding.tvMessage.text  = message.content
-            binding.tvTime.text     = message.timestamp.toFormattedTime()
-            binding.tvStatus.text   = when (message.status) {
-                ChatMessage.Status.SENDING   -> "⏳"
-                ChatMessage.Status.SENT      -> "✓"
-                ChatMessage.Status.DELIVERED -> "✓✓"
-                ChatMessage.Status.FAILED    -> "✗"
-                else                         -> ""
+            if (message.isOutgoing) {
+                binding.outgoingContainer.visibility = View.VISIBLE
+                binding.incomingContainer.visibility = View.GONE
+                binding.outgoingText.text = message.content
+                binding.outgoingTime.text = message.timestamp.toFormattedTime()
+            } else {
+                binding.outgoingContainer.visibility = View.GONE
+                binding.incomingContainer.visibility = View.VISIBLE
+                binding.incomingText.text = message.content
+                binding.incomingTime.text = message.timestamp.toFormattedTime()
             }
         }
     }
 
-    inner class ReceivedViewHolder(
-        private val binding: ItemMessageReceivedBinding
-    ) : RecyclerView.ViewHolder(binding.root) {
-
-        fun bind(message: ChatMessage) {
-            binding.tvMessage.text     = message.content
-            binding.tvTime.text        = message.timestamp.toFormattedTime()
-            binding.tvSenderName.text  = message.senderName
-        }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MessageViewHolder {
+        val binding = ItemMessageBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+        return MessageViewHolder(binding)
     }
 
-    // ── Inflate ───────────────────────────────────────────────────────────────
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        val inflater = LayoutInflater.from(parent.context)
-        return when (viewType) {
-            VIEW_TYPE_SENT -> SentViewHolder(
-                ItemMessageSentBinding.inflate(inflater, parent, false)
-            )
-            else -> ReceivedViewHolder(
-                ItemMessageReceivedBinding.inflate(inflater, parent, false)
-            )
-        }
-    }
-
-    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val message = getItem(position)
-        when (holder) {
-            is SentViewHolder     -> holder.bind(message)
-            is ReceivedViewHolder -> holder.bind(message)
-        }
+    override fun onBindViewHolder(holder: MessageViewHolder, position: Int) {
+        holder.bind(getItem(position))
     }
 
     // ── DiffUtil ──────────────────────────────────────────────────────────────
@@ -84,8 +51,5 @@ class ChatAdapter : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(DiffCallba
 
         override fun areContentsTheSame(oldItem: ChatMessage, newItem: ChatMessage): Boolean =
             oldItem == newItem
-
-        private const val VIEW_TYPE_SENT     = 1
-        private const val VIEW_TYPE_RECEIVED = 2
     }
 }

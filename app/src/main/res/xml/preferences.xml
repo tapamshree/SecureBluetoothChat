@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ============================================================
+    FILE: res/xml/preferences.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        Defines the declarative preference hierarchy for a potential
+        PreferenceFragmentCompat-based settings screen.
+
+    WHY THIS FILE EXISTS EVEN WITH SettingsActivity:
+        The project currently uses a custom view-based settings screen
+        (`activity_settings.xml` + SettingsActivity). This XML is added
+        to support future migration to AndroidX Preference APIs without
+        rewriting preference keys or semantic labels.
+
+    DATA CONTRACT:
+        Keys here intentionally align with strings + constants used in
+        SettingsActivity to keep one source of truth for user options:
+          - display_name
+          - encryption_info (read-only summary)
+          - clear_history_action
+
+    USAGE (FUTURE):
+        class SettingsFragment : PreferenceFragmentCompat() {
+            override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+                setPreferencesFromResource(R.xml.preferences, rootKey)
+            }
+        }
+    ============================================================
+-->
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- ========================================================
+         PROFILE CATEGORY
+         User identity preference used in message attribution.
+         ======================================================== -->
+    <PreferenceCategory
+        android:key="category_profile"
+        android:title="@string/pref_display_name">
+
+        <EditTextPreference
+            android:key="display_name"
+            android:title="@string/pref_display_name"
+            android:summary="%s"
+            android:defaultValue="@string/pref_display_name_default"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <!-- ========================================================
+         SECURITY CATEGORY
+         Informational entry only (encryption is always enforced).
+         ======================================================== -->
+    <PreferenceCategory
+        android:key="category_security"
+        android:title="@string/pref_encryption_label">
+
+        <Preference
+            android:key="encryption_info"
+            android:title="@string/pref_encryption_label"
+            android:summary="@string/pref_encryption_summary"
+            android:selectable="false" />
+    </PreferenceCategory>
+
+    <!-- ========================================================
+         DATA CATEGORY
+         Destructive action. Click handling would be implemented in
+         fragment/activity code.
+         ======================================================== -->
+    <PreferenceCategory
+        android:key="category_data"
+        android:title="Data">
+
+        <Preference
+            android:key="clear_history_action"
+            android:title="@string/pref_clear_history"
+            android:summary="Remove all locally stored messages and sessions on this device." />
+    </PreferenceCategory>
+
+</PreferenceScreen>

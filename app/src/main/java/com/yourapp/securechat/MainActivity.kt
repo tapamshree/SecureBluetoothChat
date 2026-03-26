@@ -5,150 +5,185 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import com.yourapp.securechat.databinding.ActivityMainBinding
 import com.yourapp.securechat.service.BluetoothChatService
+import com.yourapp.securechat.ui.chat.ChatActivity
 import com.yourapp.securechat.ui.device.DeviceListActivity
+import com.yourapp.securechat.ui.settings.SettingsActivity
 import com.yourapp.securechat.utils.Extensions.toast
 import com.yourapp.securechat.utils.Logger
 import com.yourapp.securechat.utils.PermissionHelper
 
-/**
- * Main dashboard activity.
- *
- * Responsibilities:
- *  - Request Bluetooth + notification permissions on launch
- *  - Prompt user to enable Bluetooth if off
- *  - Offer Server / Client mode selection
- *  - Navigate to [DeviceListActivity] (client) or start server and go to chat
- */
 class MainActivity : AppCompatActivity() {
+
+    private enum class PendingMode { SERVER, CLIENT }
+
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
+    private lateinit var binding: ActivityMainBinding
+    private var pendingMode: PendingMode? = null
 
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         (getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
     }
 
-    // ── Permission launcher ───────────────────────────────────────────────────
-
     private val permissionLauncher = PermissionHelper.registerLauncher(this) { allGranted, denied ->
         if (allGranted) {
-            onPermissionsGranted()
+            updateBluetoothStatusUi()
+            resumePendingMode()
         } else {
             Logger.w(TAG, "Permissions denied: $denied")
-            toast("Bluetooth permissions are required to use this app.")
-            showPermissionRationale(denied)
+            toast(getString(R.string.error_permission_denied))
         }
     }
-
-    // ── Enable BT launcher ────────────────────────────────────────────────────
 
     private val enableBtLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
+        updateBluetoothStatusUi()
         if (result.resultCode == RESULT_OK) {
-            showModeDialog()
+            resumePendingMode()
         } else {
-            toast("Bluetooth must be enabled to use Secure Chat.")
+            pendingMode = null
+            toast(getString(R.string.error_bt_disabled))
         }
     }
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    private val discoverableLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_CANCELED) {
+            pendingMode = null
+            toast(getString(R.string.error_connection_failed))
+            return@registerForActivityResult
+        }
+
+        startService(BluetoothChatService.intentStartServer(this))
+        startActivity(Intent(this, ChatActivity::class.java))
+        pendingMode = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        Logger.d(TAG, "onCreate")
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         if (!isBtSupported()) {
             AlertDialog.Builder(this)
-                .setTitle("Not Supported")
-                .setMessage("This device does not support Bluetooth.")
-                .setPositiveButton("OK") { _, _ -> finish() }
+                .setTitle(getString(R.string.error_bt_unavailable))
+                .setMessage(getString(R.string.error_bt_unavailable))
+                .setPositiveButton(getString(R.string.btn_ok)) { _, _ -> finish() }
                 .show()
             return
         }
 
-        requestPermissionsIfNeeded()
+        setupToolbar()
+        setupActions()
+        updateBluetoothStatusUi()
+        requestMissingPermissions()
     }
 
-    // ── Permission flow ───────────────────────────────────────────────────────
+    override fun onResume() {
+        super.onResume()
+        updateBluetoothStatusUi()
+    }
 
-    private fun requestPermissionsIfNeeded() {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.subtitle = getString(R.string.app_tagline)
+    }
+
+    private fun setupActions() {
+        binding.btnStartServer.setOnClickListener {
+            pendingMode = PendingMode.SERVER
+            ensureBluetoothReady()
+        }
+
+        binding.btnStartClient.setOnClickListener {
+            pendingMode = PendingMode.CLIENT
+            ensureBluetoothReady()
+        }
+    }
+
+    private fun requestMissingPermissions() {
         val missing = PermissionHelper.missingPermissions(this)
-        if (missing.isEmpty()) {
-            onPermissionsGranted()
-        } else {
+        if (missing.isNotEmpty()) {
             permissionLauncher.launch(missing)
         }
     }
 
-    private fun onPermissionsGranted() {
-        if (bluetoothAdapter?.isEnabled == true) {
-            showModeDialog()
-        } else {
+    private fun ensureBluetoothReady() {
+        val missing = PermissionHelper.missingPermissions(this)
+        if (missing.isNotEmpty()) {
+            permissionLauncher.launch(missing)
+            return
+        }
+
+        if (bluetoothAdapter?.isEnabled != true) {
             enableBtLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+            return
+        }
+
+        resumePendingMode()
+    }
+
+    private fun resumePendingMode() {
+        when (pendingMode) {
+            PendingMode.SERVER -> startServerMode()
+            PendingMode.CLIENT -> startClientMode()
+            null -> Unit
         }
     }
 
-    private fun showPermissionRationale(denied: List<String>) {
-        AlertDialog.Builder(this)
-            .setTitle("Permissions Required")
-            .setMessage(
-                "The following permissions are needed:\n\n" +
-                denied.joinToString("\n") { "• ${it.substringAfterLast('.')}" } +
-                "\n\nPlease grant them in Settings."
-            )
-            .setPositiveButton("Retry") { _, _ -> requestPermissionsIfNeeded() }
-            .setNegativeButton("Exit") { _, _ -> finish() }
-            .show()
-    }
-
-    // ── Mode selection ────────────────────────────────────────────────────────
-
-    private fun showModeDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Start a Secure Chat")
-            .setMessage("Choose your role for this session:")
-            .setPositiveButton("📡  Wait for connection (Server)") { _, _ -> startServerMode() }
-            .setNegativeButton("🔗  Connect to a device (Client)") { _, _ -> startClientMode() }
-            .setCancelable(false)
-            .show()
-    }
-
-    // ── Server mode ───────────────────────────────────────────────────────────
-
     private fun startServerMode() {
-        // Make device discoverable so the client can find us
         val discoverableIntent = Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE).apply {
             putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 120)
         }
         discoverableLauncher.launch(discoverableIntent)
     }
 
-    private val discoverableLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) {
-        // Start the foreground service in server mode
-        startService(BluetoothChatService.intentStartServer(this))
-        toast("Waiting for a connection…")
-        Logger.d(TAG, "Server mode started")
-        // Navigate to chat — it will show a 'waiting' state until client connects
-        startActivity(Intent(this, com.yourapp.securechat.ui.chat.ChatActivity::class.java))
-    }
-
-    // ── Client mode ───────────────────────────────────────────────────────────
-
     private fun startClientMode() {
         startActivity(Intent(this, DeviceListActivity::class.java))
+        pendingMode = null
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    private fun updateBluetoothStatusUi() {
+        val isEnabled = bluetoothAdapter?.isEnabled == true
+        binding.btStatusValue.text = if (isEnabled) getString(R.string.status_connected) else getString(R.string.status_disconnected)
+        binding.btStatusValue.setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (isEnabled) R.color.status_connected else R.color.status_disconnected
+            )
+        )
+        binding.btStatusIcon.imageTintList = ContextCompat.getColorStateList(
+            this,
+            if (isEnabled) R.color.status_connected else R.color.status_disconnected
+        )
+    }
 
     private fun isBtSupported(): Boolean = bluetoothAdapter != null
-
-    companion object {
-        private const val TAG = "MainActivity"
-    }
 }

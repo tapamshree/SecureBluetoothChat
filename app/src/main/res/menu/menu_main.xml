@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ============================================================
+    FILE: res/menu/menu_main.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        Toolbar action menu for MainActivity (role selection screen).
+
+    PRIMARY ACTION:
+        - Open Settings screen.
+
+    INTEGRATION:
+        MainActivity should inflate this menu in onCreateOptionsMenu:
+            menuInflater.inflate(R.menu.menu_main, menu)
+
+        And handle action in onOptionsItemSelected:
+            R.id.action_settings -> startActivity(SettingsActivity intent)
+
+    UX NOTES:
+        - `showAsAction="ifRoom"` displays icon in toolbar on wider screens.
+        - Falls back to overflow menu on constrained layouts.
+    ============================================================
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:title="@string/settings_title"
+        app:showAsAction="ifRoom" />
+
+</menu>

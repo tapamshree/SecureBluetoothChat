@@ -1,0 +1,314 @@
+<!--
+    ============================================================
+    FILE: res/values/themes.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        Defines the Material Design themes that control the global
+        visual appearance of every Activity and View in the app.
+        This is where colors.xml values get wired into the Material
+        theme system so that components like Buttons, TextInputLayouts,
+        Toolbars, and Dialogs all pick up the correct colors
+        automatically without needing per-view styling.
+
+    HOW ANDROID THEMING WORKS:
+        AndroidManifest.xml points each Activity to a theme:
+            android:theme="@style/Theme.SecureBluetoothChat"
+        Material components read theme attributes like:
+            ?attr/colorPrimary        → brand_primary
+            ?attr/colorSurface        → surface
+            ?attr/colorOnPrimary      → text_on_primary
+        So by setting these attributes here once, the entire app
+        gets consistent colors with zero per-widget overrides.
+
+    THEME HIERARCHY IN THIS FILE:
+        Theme.SecureBluetoothChat              ← base app theme
+        ├── Theme.SecureBluetoothChat.NoActionBar  ← for activities
+        │                                           using custom toolbar
+        ├── Theme.SecureBluetoothChat.Splash    ← fullscreen splash
+        └── Widget overrides (Button, TextInput, etc.)
+
+    PARENT THEME:
+        Theme.MaterialComponents.DayNight.DarkActionBar
+        We use MaterialComponents (not AppCompat) so that Material3
+        widgets (MaterialButton, TextInputLayout, etc.) render
+        correctly. DayNight means Android can switch to light mode
+        automatically if the user's system is set to light — but
+        since our palette is dark-only for now, we override everything
+        to stay dark.
+
+    USAGE:
+        In AndroidManifest.xml:
+            <application android:theme="@style/Theme.SecureBluetoothChat">
+            <activity android:theme="@style/Theme.SecureBluetoothChat.NoActionBar">
+
+    SECTIONS:
+        1. Base application theme
+        2. NoActionBar variant (used by most Activities)
+        3. Splash theme (fullscreen, no status bar)
+        4. Widget style overrides (Button, TextInputLayout, Toolbar)
+        5. Text appearance overrides
+    ============================================================
+-->
+<resources>
+
+    <!-- ========================================================
+         SECTION 1: Base Application Theme
+         Root theme that all other themes inherit from.
+         Sets up the full Material color system by mapping our
+         semantic colors (from colors.xml) to Material attributes.
+         This theme still has an ActionBar — see Section 2 for
+         the NoActionBar variant used by most screens.
+         ======================================================== -->
+    <style name="Theme.SecureBluetoothChat"
+        parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+
+        <!-- ── Primary brand color ──────────────────────────────
+             Used for: Toolbar background, FAB, primary buttons,
+             checked state of switches/checkboxes.              -->
+        <item name="colorPrimary">@color/brand_primary</item>
+
+        <!-- Darker variant — used for the status bar color -->
+        <item name="colorPrimaryDark">@color/brand_primary_dark</item>
+
+        <!-- Lighter variant — used for ripple on primary surfaces -->
+        <item name="colorPrimaryVariant">@color/brand_primary_light</item>
+
+        <!-- ── Secondary / accent color ─────────────────────────
+             Used for: FAB, selection handles, sliders.         -->
+        <item name="colorSecondary">@color/brand_primary</item>
+        <item name="colorSecondaryVariant">@color/brand_primary_dark</item>
+
+        <!-- ── Text on colored surfaces ─────────────────────────
+             Text/icon color when placed ON TOP of colorPrimary
+             (e.g. text inside a filled primary button).        -->
+        <item name="colorOnPrimary">@color/text_on_primary</item>
+        <item name="colorOnSecondary">@color/text_on_primary</item>
+
+        <!-- ── Background ───────────────────────────────────────
+             The root window background color.                  -->
+        <item name="android:colorBackground">@color/background</item>
+
+        <!-- ── Surface ──────────────────────────────────────────
+             Cards, bottom sheets, dialogs, menus.              -->
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+
+        <!-- ── Error color ──────────────────────────────────────
+             Shown by TextInputLayout when validation fails.    -->
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/text_on_primary</item>
+
+        <!-- ── Status bar ───────────────────────────────────────
+             Top system bar color. Matches toolbar so it looks
+             like one seamless dark panel.                      -->
+        <item name="android:statusBarColor">@color/palette_navy_900</item>
+
+        <!-- ── Navigation bar ───────────────────────────────────
+             Bottom system gesture/button bar color.            -->
+        <item name="android:navigationBarColor">@color/palette_navy_900</item>
+
+        <!-- ── Window background ────────────────────────────────
+             Prevents white flash between activity transitions. -->
+        <item name="android:windowBackground">@color/background</item>
+
+        <!-- ── Text appearances ─────────────────────────────────
+             Globally override Material text styles to use our
+             colors so all TextViews pick up the right defaults.-->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_hint</item>
+
+        <!-- ── Widget style overrides ───────────────────────────
+             Point Material widgets to our custom styles defined
+             in Sections 4 and 5 below.                        -->
+        <item name="materialButtonStyle">@style/Widget.SecureBluetoothChat.Button</item>
+        <item name="textInputStyle">@style/Widget.SecureBluetoothChat.TextInputLayout</item>
+
+    </style>
+
+
+    <!-- ========================================================
+         SECTION 2: NoActionBar Variant
+         Used by ALL Activities in this app because we use a
+         custom MaterialToolbar in each layout instead of the
+         default ActionBar. This gives us full control over the
+         toolbar appearance, navigation icon, and menu items.
+
+         Applied in AndroidManifest.xml per activity:
+             android:theme="@style/Theme.SecureBluetoothChat.NoActionBar"
+         ======================================================== -->
+    <style name="Theme.SecureBluetoothChat.NoActionBar"
+        parent="Theme.SecureBluetoothChat">
+
+        <!-- Hides the system-managed ActionBar entirely -->
+        <item name="windowActionBar">false</item>
+        <!-- Prevents the system from adding any top padding for it -->
+        <item name="windowNoTitle">true</item>
+
+    </style>
+
+
+    <!-- ========================================================
+         SECTION 3: Splash Theme
+         Applied only to SplashActivity. Fullscreen with no
+         status bar or navigation bar so the splash feels
+         immersive. The app transitions to NoActionBar theme
+         as soon as MainActivity launches.
+         ======================================================== -->
+    <style name="Theme.SecureBluetoothChat.Splash"
+        parent="Theme.SecureBluetoothChat.NoActionBar">
+
+        <!-- Remove both system bars for a true fullscreen feel -->
+        <item name="android:windowFullscreen">true</item>
+
+        <!-- Branded background shown even before the layout inflates.
+             This eliminates the white flash on cold start because
+             Android draws this color immediately from the theme
+             before any View is rendered.                        -->
+        <item name="android:windowBackground">@color/background</item>
+
+        <!-- Keep status bar icons light (white) on our dark background -->
+        <item name="android:windowLightStatusBar">false</item>
+
+    </style>
+
+
+    <!-- ========================================================
+         SECTION 4: Widget Style Overrides
+
+         Rather than setting style="" on every single widget in
+         every layout file, we define custom styles here and
+         point to them from the theme above. Every MaterialButton
+         and TextInputLayout in the app automatically picks up
+         these styles.
+         ======================================================== -->
+
+    <!--
+        PRIMARY BUTTON STYLE
+        Applied to all MaterialButtons via the theme's
+        materialButtonStyle attribute. Rounded corners, teal
+        background, white text. Matches the security/modern feel.
+    -->
+    <style name="Widget.SecureBluetoothChat.Button"
+        parent="Widget.MaterialComponents.Button">
+
+        <!-- Fully rounded pill shape -->
+        <item name="cornerRadius">24dp</item>
+        <!-- Teal fill -->
+        <item name="backgroundTint">@color/brand_primary</item>
+        <!-- White label text -->
+        <item name="android:textColor">@color/text_on_primary</item>
+        <!-- All-caps off — sentence case looks more modern -->
+        <item name="android:textAllCaps">false</item>
+        <!-- Comfortable tap target -->
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <!-- Ripple color on press -->
+        <item name="rippleColor">@color/brand_primary_light</item>
+
+    </style>
+
+    <!--
+        OUTLINED (SECONDARY) BUTTON STYLE
+        Used for secondary actions like "Cancel" or "Stop Scan".
+        No fill, just a teal border and teal text.
+    -->
+    <style name="Widget.SecureBluetoothChat.Button.Outlined"
+        parent="Widget.MaterialComponents.Button.OutlinedButton">
+
+        <item name="cornerRadius">24dp</item>
+        <item name="strokeColor">@color/brand_primary</item>
+        <item name="android:textColor">@color/brand_primary</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:paddingTop">14dp</item>
+        <item name="android:paddingBottom">14dp</item>
+        <item name="rippleColor">@color/brand_primary_light</item>
+
+    </style>
+
+    <!--
+        TEXT INPUT LAYOUT STYLE
+        Applied to all TextInputLayouts via the theme's
+        textInputStyle attribute. Filled style with a dark
+        surface background so input fields are clearly visible
+        against the navy background.
+    -->
+    <style name="Widget.SecureBluetoothChat.TextInputLayout"
+        parent="Widget.MaterialComponents.TextInputLayout.FilledBox">
+
+        <!-- Input field background matches surface_variant -->
+        <item name="boxBackgroundColor">@color/surface_variant</item>
+        <!-- Teal underline/stroke when focused -->
+        <item name="boxStrokeColor">@color/brand_primary</item>
+        <!-- Rounded corners on the filled box -->
+        <item name="boxCornerRadiusTopStart">12dp</item>
+        <item name="boxCornerRadiusTopEnd">12dp</item>
+        <item name="boxCornerRadiusBottomStart">12dp</item>
+        <item name="boxCornerRadiusBottomEnd">12dp</item>
+        <!-- Floating label color when focused -->
+        <item name="hintTextColor">@color/brand_primary</item>
+        <!-- Floating label color when unfocused -->
+        <item name="android:textColorHint">@color/text_hint</item>
+
+    </style>
+
+    <!--
+        TOOLBAR STYLE
+        Applied manually in each layout via style="". Controls
+        the background, title color, and elevation of our custom
+        MaterialToolbar in each Activity.
+    -->
+    <style name="Widget.SecureBluetoothChat.Toolbar"
+        parent="Widget.MaterialComponents.Toolbar">
+
+        <item name="android:background">@color/toolbar_background</item>
+        <item name="titleTextColor">@color/text_primary</item>
+        <item name="subtitleTextColor">@color/text_secondary</item>
+        <!-- Subtle shadow to separate toolbar from content -->
+        <item name="android:elevation">4dp</item>
+
+    </style>
+
+
+    <!-- ========================================================
+         SECTION 5: Text Appearance Overrides
+         Named text styles used with android:textAppearance="..."
+         in layouts for consistent typography across the app.
+         Based on Material type scale.
+         ======================================================== -->
+
+    <!-- Large screen titles (e.g. "Choose Mode" on MainActivity) -->
+    <style name="TextAppearance.SecureBluetoothChat.HeadlineLarge"
+        parent="TextAppearance.MaterialComponents.Headline4">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Section headers and card titles -->
+    <style name="TextAppearance.SecureBluetoothChat.TitleMedium"
+        parent="TextAppearance.MaterialComponents.Subtitle1">
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Body text — device names, message previews -->
+    <style name="TextAppearance.SecureBluetoothChat.BodyMedium"
+        parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <!-- Secondary body text — MAC addresses, subtitles, timestamps -->
+    <style name="TextAppearance.SecureBluetoothChat.BodySmall"
+        parent="TextAppearance.MaterialComponents.Body2">
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+    <!-- Small caption text — encryption badge, status labels -->
+    <style name="TextAppearance.SecureBluetoothChat.Caption"
+        parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+</resources>

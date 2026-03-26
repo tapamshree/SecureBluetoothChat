@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    ============================================================
+    FILE: res/menu/menu_chat.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        Toolbar menu for ChatActivity.
+
+    ACTIONS:
+        1) Disconnect
+           - Ends active Bluetooth connection/session.
+           - Usually handled by BluetoothChatService stop/disconnect call.
+        2) Clear chat history
+           - Deletes local conversation messages for current device/session.
+           - Should require confirmation in UI before destructive execution.
+
+    INTEGRATION:
+        Inflate in ChatActivity:
+            menuInflater.inflate(R.menu.menu_chat, menu)
+
+        Handle IDs:
+            R.id.action_disconnect
+            R.id.action_clear_chat
+    ============================================================
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_disconnect"
+        android:icon="@android:drawable/ic_menu_close_clear_cancel"
+        android:title="@string/btn_disconnect"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_clear_chat"
+        android:title="@string/pref_clear_history"
+        app:showAsAction="never" />
+
+</menu>

@@ -9,10 +9,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.yourapp.securechat.R
 import com.yourapp.securechat.bluetooth.BluetoothController
 import com.yourapp.securechat.bluetooth.BluetoothDeviceScanner
-import com.yourapp.securechat.data.model.BluetoothDeviceModel
+import com.yourapp.securechat.data.model.BluetoothDeviceInfo
 import com.yourapp.securechat.databinding.ActivityDeviceListBinding
 import com.yourapp.securechat.service.BluetoothChatService
 import com.yourapp.securechat.ui.chat.ChatActivity
@@ -71,14 +70,14 @@ class DeviceListActivity : AppCompatActivity() {
     private fun setupToolbar() {
         setSupportActionBar(binding.toolbar)
         supportActionBar?.apply {
-            title = getString(R.string.title_device_list)
+            title = getString(com.yourapp.securechat.R.string.device_list_title)
             setDisplayHomeAsUpEnabled(true)
         }
         binding.toolbar.setNavigationOnClickListener { onBackPressedDispatcher.onBackPressed() }
     }
 
     private fun setupRecyclerViews() {
-        val onDeviceClick: (BluetoothDeviceModel) -> Unit = { device -> onDeviceSelected(device) }
+        val onDeviceClick: (BluetoothDeviceInfo) -> Unit = { device -> onDeviceSelected(device) }
 
         pairedAdapter = DeviceListAdapter(onDeviceClick)
         discoveredAdapter = DeviceListAdapter(onDeviceClick)
@@ -91,7 +90,7 @@ class DeviceListActivity : AppCompatActivity() {
             addItemDecoration(divider)
         }
 
-        binding.rvDiscoveredDevices.apply {
+        binding.rvAvailableDevices.apply {
             layoutManager = LinearLayoutManager(this@DeviceListActivity)
             adapter = discoveredAdapter
             addItemDecoration(DividerItemDecoration(this@DeviceListActivity, LinearLayoutManager.VERTICAL))
@@ -116,25 +115,29 @@ class DeviceListActivity : AppCompatActivity() {
             launch {
                 viewModel.pairedDevices.collect { devices ->
                     pairedAdapter.submitList(devices)
-                    binding.tvNoPaired.show()
-                    if (devices.isEmpty()) binding.tvNoPaired.show() else binding.tvNoPaired.hide()
+                    updateEmptyState()
                 }
             }
 
             launch {
                 viewModel.discoveredDevices.collect { devices ->
                     discoveredAdapter.submitList(devices)
-                    if (devices.isEmpty()) binding.tvNoDiscovered.show() else binding.tvNoDiscovered.hide()
+                    updateEmptyState()
                 }
             }
 
             launch {
                 viewModel.isScanning.collect { scanning ->
                     binding.btnScan.text = if (scanning)
-                        getString(R.string.btn_stop_scan)
+                        getString(com.yourapp.securechat.R.string.btn_stop_scan)
                     else
-                        getString(R.string.btn_scan)
+                        getString(com.yourapp.securechat.R.string.btn_scan)
                     if (scanning) binding.scanProgress.show() else binding.scanProgress.hide()
+                    binding.scanStatusText.text = if (scanning) {
+                        getString(com.yourapp.securechat.R.string.scanning)
+                    } else {
+                        ""
+                    }
                 }
             }
 
@@ -148,7 +151,7 @@ class DeviceListActivity : AppCompatActivity() {
 
     // ── Device selected ───────────────────────────────────────────────────────
 
-    private fun onDeviceSelected(device: BluetoothDeviceModel) {
+    private fun onDeviceSelected(device: BluetoothDeviceInfo) {
         Logger.d(TAG, "Device selected: ${device.address} (${device.displayName})")
         viewModel.stopScan()
 
@@ -164,6 +167,11 @@ class DeviceListActivity : AppCompatActivity() {
                 putExtra(ChatActivity.EXTRA_DEVICE_NAME, device.displayName)
             }
         )
+    }
+
+    private fun updateEmptyState() {
+        val isEmpty = pairedAdapter.currentList.isEmpty() && discoveredAdapter.currentList.isEmpty()
+        if (isEmpty) binding.emptyStateText.show() else binding.emptyStateText.hide()
     }
 
     companion object {

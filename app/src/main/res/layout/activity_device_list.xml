@@ -1,0 +1,337 @@
+<!--
+    ============================================================
+    FILE: res/layout/activity_device_list.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        The layout for DeviceListActivity — the screen where the
+        user (acting as Client) sees nearby and paired Bluetooth
+        devices and taps one to initiate a connection.
+
+    HOW IT FITS IN THE FLOW:
+        MainActivity (client mode button tapped)
+            → DeviceListActivity   ← YOU ARE HERE
+                → ChatActivity (once connection is established)
+
+    WHAT HAPPENS ON THIS SCREEN:
+        1. Activity launches and immediately shows paired devices
+           from the system (no scan needed — these are already known)
+        2. User can tap "Scan" to discover new nearby devices
+        3. Discovered devices appear in a second section below
+        4. User taps any device row → DeviceListActivity calls
+           BluetoothClient to connect to that device's address
+        5. On successful connection → navigates to ChatActivity
+
+    WHO DRIVES THIS SCREEN:
+        DeviceViewModel.kt observes:
+            - pairedDevices: List<BluetoothDeviceInfo>
+            - scannedDevices: List<BluetoothDeviceInfo>
+            - isScanning: Boolean
+            - connectionState: ConnectionState (enum)
+        DeviceListActivity.kt observes these LiveData values and
+        updates this layout accordingly.
+
+    LAYOUT STRUCTURE:
+        CoordinatorLayout (root — Snackbar support)
+        ├── AppBarLayout
+        │   └── MaterialToolbar        — title + back arrow
+        ├── ConstraintLayout (body)
+        │   ├── LinearLayout           — scan controls row
+        │   │   ├── TextView           — "Scanning…" / idle status
+        │   │   ├── ProgressBar        — shown during active scan
+        │   │   └── MaterialButton     — Scan / Stop toggle button
+        │   ├── TextView               — "Paired Devices" section header
+        │   ├── RecyclerView           — paired devices list
+        │   │                            (DeviceListAdapter.kt)
+        │   ├── TextView               — "Available Devices" header
+        │   ├── RecyclerView           — scanned devices list
+        │   │                            (DeviceListAdapter.kt)
+        │   └── TextView               — empty state message
+        │                                shown when no devices found
+
+    VIEW BINDING:
+        Accessed in DeviceListActivity.kt via:
+            binding = ActivityDeviceListBinding.inflate(layoutInflater)
+        Key IDs:
+            binding.toolbar             — set as ActionBar
+            binding.btnScan             — toggle scan on/off
+            binding.scanProgress        — show/hide during scan
+            binding.scanStatusText      — "Scanning…" / ""
+            binding.rvPairedDevices     — paired list RecyclerView
+            binding.rvAvailableDevices  — scanned list RecyclerView
+            binding.emptyStateText      — shown when both lists empty
+
+    ADAPTER:
+        Both RecyclerViews use DeviceListAdapter.kt.
+        Two separate adapter instances are created in
+        DeviceListActivity.kt — one per RecyclerView.
+        Each item in the list is an item_device.xml row (File 8).
+
+    NOTES:
+        - LinearLayoutManager is set programmatically in the Activity,
+          not in XML — RecyclerView just declares dimensions here
+        - The scan button text toggles between
+          @string/btn_scan and @string/btn_stop_scan in the Activity
+        - Section headers are always visible; if a section has no
+          devices the RecyclerView simply renders empty (zero height)
+          and the emptyStateText appears if BOTH are empty
+        - nestedScrollingEnabled="false" on both RecyclerViews lets
+          the outer NestedScrollView handle all scrolling smoothly
+    ============================================================
+-->
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    tools:context=".ui.device.DeviceListActivity">
+
+
+    <!-- ========================================================
+         APP BAR + TOOLBAR
+         Back arrow (←) is enabled in DeviceListActivity.kt via:
+             supportActionBar?.setDisplayHomeAsUpEnabled(true)
+         Pressing it calls onSupportNavigateUp() → finish()
+         which returns the user to MainActivity.
+         ======================================================== -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/toolbar_background"
+        app:elevation="4dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="@string/device_list_title"
+            app:titleTextColor="@color/text_primary"
+            app:navigationIconTint="@color/text_primary"
+            style="@style/Widget.SecureBluetoothChat.Toolbar" />
+
+    </com.google.android.material.appbar.AppBarLayout>
+
+
+    <!-- ========================================================
+         MAIN BODY — NestedScrollView wraps everything so that
+         on small screens with many devices the user can scroll
+         through both lists without any content being clipped.
+         ======================================================== -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="32dp">
+
+
+            <!-- ================================================
+                 SCAN CONTROLS ROW
+                 A horizontal strip at the top of the body that
+                 contains the scan toggle button and a live status
+                 label + spinner. Updates are driven by DeviceViewModel
+                 isScanning LiveData in DeviceListActivity.kt.
+                 ================================================ -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/scanControlCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="20dp"
+                app:cardBackgroundColor="@color/surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/divider"
+                app:strokeWidth="1dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
+
+                    <!--
+                        SCAN SPINNER
+                        Visible only while scanning is active.
+                        DeviceListActivity.kt sets:
+                            binding.scanProgress.visibility = View.VISIBLE
+                            binding.scanProgress.visibility = View.GONE
+                    -->
+                    <ProgressBar
+                        android:id="@+id/scanProgress"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:indeterminate="true"
+                        android:indeterminateTint="@color/brand_primary"
+                        android:visibility="gone"
+                        android:layout_marginEnd="10dp"
+                        tools:visibility="visible" />
+
+                    <!--
+                        SCAN STATUS TEXT
+                        Shows "Scanning…" during active scan,
+                        cleared to empty string when idle.
+                        weight="1" pushes the button to the right.
+                    -->
+                    <TextView
+                        android:id="@+id/scanStatusText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodySmall"
+                        android:textColor="@color/text_secondary"
+                        tools:text="@string/scanning" />
+
+                    <!--
+                        SCAN / STOP BUTTON
+                        Text and behavior toggled in DeviceListActivity.kt:
+                            Idle    → text="Scan",  starts BT discovery
+                            Scanning → text="Stop", cancels BT discovery
+                        Uses outlined style so it doesn't visually
+                        dominate the card — it's a secondary action.
+                    -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnScan"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/btn_scan"
+                        style="@style/Widget.SecureBluetoothChat.Button.Outlined"
+                        android:paddingHorizontal="20dp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+            <!-- ================================================
+                 SECTION HEADER — "Paired Devices"
+                 These are devices already bonded with this phone
+                 via system Bluetooth settings. They appear
+                 immediately without needing to scan.
+                 ================================================ -->
+            <TextView
+                android:id="@+id/headerPaired"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/paired_devices"
+                android:textAppearance="@style/TextAppearance.SecureBluetoothChat.Caption"
+                android:textColor="@color/brand_primary"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="24dp"
+                android:paddingBottom="8dp"
+                app:layout_constraintTop_toBottomOf="@id/scanControlCard"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!--
+                PAIRED DEVICES RECYCLER VIEW
+                Populated by DeviceListAdapter with
+                DeviceViewModel.pairedDevices LiveData.
+                nestedScrollingEnabled="false" so scrolling is
+                handled by the outer NestedScrollView instead of
+                this RecyclerView independently — prevents scroll
+                conflicts and makes the whole page scroll together.
+                LinearLayoutManager set in DeviceListActivity.kt.
+            -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvPairedDevices"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="20dp"
+                android:nestedScrollingEnabled="false"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_device"
+                tools:itemCount="3"
+                app:layout_constraintTop_toBottomOf="@id/headerPaired"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+
+            <!-- ================================================
+                 SECTION HEADER — "Available Devices"
+                 Devices discovered during an active BT scan that
+                 are not yet paired. User can connect to these
+                 (pairing dialog will appear automatically).
+                 ================================================ -->
+            <TextView
+                android:id="@+id/headerAvailable"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/available_devices"
+                android:textAppearance="@style/TextAppearance.SecureBluetoothChat.Caption"
+                android:textColor="@color/brand_primary"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="24dp"
+                android:paddingBottom="8dp"
+                app:layout_constraintTop_toBottomOf="@id/rvPairedDevices"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!--
+                AVAILABLE DEVICES RECYCLER VIEW
+                Populated by DeviceListAdapter with
+                DeviceViewModel.scannedDevices LiveData.
+                Items are added incrementally as BT discovery
+                broadcasts ACTION_FOUND intents — the adapter
+                calls notifyItemInserted() for each new device.
+            -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvAvailableDevices"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="20dp"
+                android:nestedScrollingEnabled="false"
+                android:clipToPadding="false"
+                tools:listitem="@layout/item_device"
+                tools:itemCount="2"
+                app:layout_constraintTop_toBottomOf="@id/headerAvailable"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+
+            <!-- ================================================
+                 EMPTY STATE MESSAGE
+                 Shown when both RecyclerViews have zero items —
+                 i.e. no paired devices AND scan found nothing.
+                 DeviceListActivity.kt sets this visible/gone by
+                 observing the combined size of both device lists.
+                 Invisible by default — lists are shown first.
+                 ================================================ -->
+            <TextView
+                android:id="@+id/emptyStateText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/no_devices_found"
+                android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodySmall"
+                android:textColor="@color/text_secondary"
+                android:textAlignment="center"
+                android:paddingHorizontal="40dp"
+                android:paddingTop="48dp"
+                android:visibility="gone"
+                tools:visibility="visible"
+                app:layout_constraintTop_toBottomOf="@id/rvAvailableDevices"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -1,0 +1,196 @@
+<!--
+    ============================================================
+    FILE: res/layout/activity_splash.xml
+    PROJECT: SecureBluetoothChat
+    ============================================================
+
+    PURPOSE:
+        The layout for SplashActivity — the very first screen
+        the user sees on cold start. It displays the app logo,
+        name, tagline, and a loading indicator while the app:
+            1. Initializes the Android Keystore / KeyManager
+            2. Checks if Bluetooth is available and enabled
+            3. Checks for required runtime permissions
+        Once those checks complete, SplashActivity navigates
+        to MainActivity automatically.
+
+    THEME APPLIED:
+        Theme.SecureBluetoothChat.Splash (fullscreen, no bars)
+        Set in AndroidManifest.xml on SplashActivity.
+
+    LAYOUT STRUCTURE:
+        ConstraintLayout (root, full screen, dark background)
+        ├── ImageView          — lock/shield icon (center-top area)
+        ├── TextView           — app name "SecureBluetoothChat"
+        ├── TextView           — tagline "Encrypted. Private. Offline."
+        ├── ProgressBar        — loading spinner (indeterminate)
+        └── TextView           — loading status message
+                                 (updated from SplashActivity.kt
+                                  e.g. "Initializing keys…")
+
+    VIEW BINDING:
+        This layout is accessed in SplashActivity.kt via:
+            binding = ActivitySplashBinding.inflate(layoutInflater)
+        All views with an android:id are accessible as:
+            binding.appIcon, binding.appName, binding.loadingStatus, etc.
+
+    NOTES:
+        - No toolbar — splash is fullscreen
+        - The lock icon references @drawable/ic_lock_shield which
+          we will create in the drawables file later. For now the
+          ImageView will show nothing until that drawable exists.
+        - The ProgressBar uses the teal brand color via its
+          indeterminateTint attribute
+        - Animations (fade-in) are handled in SplashActivity.kt,
+          not here — layouts define structure, not motion
+    ============================================================
+-->
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    tools:context=".ui.splash.SplashActivity">
+
+    <!--
+        ── VERTICAL CHAIN ───────────────────────────────────────
+        The five views below (icon, app name, tagline, spinner,
+        status text) are packed into a vertical chain centered
+        on screen. A chain in ConstraintLayout distributes views
+        along an axis while keeping them linked together as a unit.
+        chain style="packed" means they sit close together as a
+        group rather than being spread across the full height.
+    -->
+
+    <!--
+        APP ICON / LOGO
+        A shield-with-lock icon representing security.
+        Source: @drawable/ic_lock_shield (to be created later).
+        tint: brand teal so it pops against the dark background.
+        Size: 96dp × 96dp — large enough to feel like a logo
+        without dominating the screen.
+    -->
+    <ImageView
+        android:id="@+id/appIcon"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:contentDescription="@string/app_name"
+        android:src="@android:drawable/ic_lock_lock"
+        app:tint="@color/brand_primary"
+        android:layout_marginBottom="24dp"
+        app:layout_constraintBottom_toTopOf="@id/appName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <!--
+        APP NAME
+        Large bold title. Uses our HeadlineLarge text appearance
+        defined in themes.xml. Positioned below the icon in the
+        vertical chain.
+    -->
+    <TextView
+        android:id="@+id/appName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.HeadlineLarge"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@id/appTagline"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/appIcon" />
+
+    <!--
+        TAGLINE
+        Secondary caption below the app name. Subtler color
+        (text_secondary) to create visual hierarchy — name
+        grabs attention first, tagline provides context.
+    -->
+    <TextView
+        android:id="@+id/appTagline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_tagline"
+        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodySmall"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:letterSpacing="0.08"
+        android:layout_marginBottom="48dp"
+        app:layout_constraintBottom_toTopOf="@id/loadingSpinner"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/appName" />
+
+    <!--
+        LOADING SPINNER
+        Indeterminate circular ProgressBar shown while the app
+        performs startup checks. Tinted teal to match the brand.
+        Hidden (GONE) by default — SplashActivity.kt sets it to
+        VISIBLE once initialization begins so there's no flash
+        if startup is instant on fast devices.
+    -->
+    <ProgressBar
+        android:id="@+id/loadingSpinner"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:indeterminate="true"
+        android:indeterminateTint="@color/brand_primary"
+        android:visibility="visible"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintBottom_toTopOf="@id/loadingStatus"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/appTagline" />
+
+    <!--
+        LOADING STATUS TEXT
+        A small line of text updated programmatically from
+        SplashActivity.kt to describe what is currently happening
+        during initialization. Examples:
+            "Initializing secure environment…"
+            "Checking Bluetooth availability…"
+            "Requesting permissions…"
+        This gives the user feedback rather than a silent spinner.
+        Default text matches the splash_loading string resource.
+    -->
+    <TextView
+        android:id="@+id/loadingStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/splash_loading"
+        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.Caption"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/loadingSpinner" />
+
+    <!--
+        VERSION TEXT (bottom-pinned, outside the chain)
+        Pinned to the very bottom of the screen independently of
+        the chain. Shows the app version number. Updated at runtime
+        from SplashActivity.kt using PackageInfo.versionName.
+        Kept subtle — small, low-contrast — so it doesn't compete
+        with the logo area.
+    -->
+    <TextView
+        android:id="@+id/versionText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:textColor="@color/text_disabled"
+        android:layout_marginBottom="24dp"
+        tools:text="v1.0.0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
