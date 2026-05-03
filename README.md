@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🔐 CipherLink
+#  CipherLink
 
 ### Encrypted. Private. Offline.
 
@@ -16,7 +16,7 @@
 
 ---
 
-## 📖 Overview
+##  Overview
 
 **CipherLink** is an Android application that enables two devices to communicate securely over a direct Bluetooth connection — completely offline, with no servers, no cloud, and no third-party services involved.
 
@@ -26,23 +26,23 @@ Every message is end-to-end encrypted using **ECDH key exchange** to establish a
 
 ---
 
-## ✨ Features
+##  Features
 
 | Feature | Details |
 |---|---|
-| 🔒 **End-to-End Encryption** | AES-256-GCM — authenticated encryption, tamper detection built-in |
-| 🔑 **ECDH Key Exchange** | Elliptic-Curve Diffie-Hellman on every connection — perfect forward secrecy |
-| 📡 **Pure Bluetooth** | No internet, no Wi-Fi, no servers — works completely offline |
-| 🔁 **Dual Connection Modes** | Act as Server (wait) or Client (scan and connect) |
-| 💾 **Persistent Message History** | All messages stored locally using Room (SQLite) |
-| 🔔 **Foreground Service** | Keeps Bluetooth connection alive when the app is backgrounded |
-| 🎨 **Encryption Selector UI** | Switch between AES-256, RSA-2048, Twofish-256, ECC-X25519 display labels |
-| ⚙️ **Settings Screen** | Set display name, view encryption info, clear history |
-| 🌑 **Dark Mode UI** | Navy/teal dark theme designed for security and privacy aesthetics |
+|  **End-to-End Encryption** | AES-256-GCM — authenticated encryption, tamper detection built-in |
+|  **ECDH Key Exchange** | Elliptic-Curve Diffie-Hellman on every connection — perfect forward secrecy |
+|  **Pure Bluetooth** | No internet, no Wi-Fi, no servers — works completely offline |
+|  **Dual Connection Modes** | Act as Server (wait) or Client (scan and connect) |
+|  **Persistent Message History** | All messages stored locally using Room (SQLite) |
+|  **Foreground Service** | Keeps Bluetooth connection alive when the app is backgrounded |
+|  **Encryption Selector UI** | Switch between AES-256, RSA-2048, Twofish-256, ECC-X25519 display labels |
+|  **Settings Screen** | Set display name, view encryption info, clear history |
+|  **Dark Mode UI** | Navy/teal dark theme designed for security and privacy aesthetics |
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 CipherLink follows a clean **MVVM (Model-View-ViewModel)** architecture with clearly separated layers:
 
@@ -76,7 +76,7 @@ CipherLink follows a clean **MVVM (Model-View-ViewModel)** architecture with cle
 
 ---
 
-## 🔐 Security Design
+##  Security Design
 
 ### Key Exchange (ECDH)
 
@@ -88,7 +88,7 @@ When two devices connect, they perform an **Elliptic-Curve Diffie-Hellman** hand
 4. The shared secret is hashed with **SHA-256** → 32-byte **AES-256 session key**
 5. All subsequent messages are encrypted with this session key
 
-> ✅ The session key is never transmitted. Even if a future session key is compromised, past sessions remain secure.
+>  The session key is never transmitted. Even if a future session key is compromised, past sessions remain secure.
 
 ### Message Encryption (AES-256-GCM)
 
@@ -106,7 +106,7 @@ This entire envelope is encrypted with **AES-256-GCM**, which provides:
 
 ---
 
-## 📂 Project Structure
+##  Project Structure
 
 ```
 SecureBluetoothChat/
@@ -162,7 +162,7 @@ SecureBluetoothChat/
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |---|---|
@@ -181,7 +181,7 @@ SecureBluetoothChat/
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -216,11 +216,11 @@ SecureBluetoothChat/
 2. Open CipherLink on **Device B** → tap **"Find a Device"** (Client mode)
 3. On Device B, select Device A from the list
 4. A secure ECDH handshake happens automatically
-5. Start chatting — all messages are end-to-end encrypted! 🔐
+5. Start chatting — all messages are end-to-end encrypted! 
 
 ---
 
-## 🧪 Running Tests
+##  Running Tests
 
 ```bash
 # Unit tests (crypto + data layer)
@@ -239,7 +239,7 @@ Test coverage includes:
 
 ---
 
-## 📋 Permissions
+##  Permissions
 
 | Permission | Reason |
 |---|---|
@@ -253,19 +253,9 @@ Test coverage includes:
 
 ---
 
-## 👥 Team
+##  License
 
-Built by **Team CipherLink** for MADLAB:
-
-- **Shraddha DK**
-- **Sohaan Gaba**
-- **Shreeram Patel**
-
----
-
-## 📄 License
-
-This project is developed for academic/research purposes as part of the MADLAB program.
+This project is developed as side project
 
 ---
 
