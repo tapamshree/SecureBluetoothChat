@@ -15,6 +15,35 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * ============================================================================
+ * FILE: ChatViewModel.kt
+ * ============================================================================
+ *
+ * 1. PURPOSE OF THE FILE:
+ * To hold and manage UI-related data for the chat screen in a lifecycle-aware 
+ * manner, surviving configuration changes like screen rotations.
+ *
+ * 2. HOW IT WORKS:
+ * It exposes a `StateFlow<List<ChatMessage>>` that reactively emits the latest 
+ * messages for the active device. Internally it uses `flatMapLatest` to switch 
+ * the upstream Room Flow whenever the connected device address changes.
+ *
+ * 3. WHY IS IT IMPORTANT:
+ * Activities are destroyed and recreated on every screen rotation. Without a 
+ * ViewModel, the message list and display name would be lost each time.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * MVVM ViewModel sitting between `ChatActivity` (View) and `ChatRepository` 
+ * (Model). It never references Android UI classes directly.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [messages]: StateFlow of chat messages, auto-switches when device changes.
+ * - [setConversationDevice()]: Updates the active device address to load messages for.
+ * - [clearConversation()]: Deletes all messages for the current device.
+ * - [Factory]: Custom ViewModelProvider.Factory for constructor injection.
+ * ============================================================================
+ */
 class ChatViewModel(
     private val chatRepository: ChatRepository,
     initialDeviceAddress: String

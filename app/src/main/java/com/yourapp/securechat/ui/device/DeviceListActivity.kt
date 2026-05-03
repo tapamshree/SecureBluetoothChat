@@ -22,12 +22,33 @@ import com.yourapp.securechat.utils.Logger
 import kotlinx.coroutines.launch
 
 /**
- * Shows two lists:
- *  1. Already-paired (bonded) devices
- *  2. Nearby discovered devices (via BT scan)
+ * ============================================================================
+ * FILE: DeviceListActivity.kt
+ * ============================================================================
  *
- * Tapping a device starts [BluetoothChatService] in client mode and
- * navigates to [ChatActivity].
+ * 1. PURPOSE OF THE FILE:
+ * To provide the device discovery and selection screen where the user picks 
+ * a remote Bluetooth device to connect to.
+ *
+ * 2. HOW IT WORKS:
+ * It displays two RecyclerView lists: one for already-paired (bonded) devices 
+ * and one for newly discovered devices found during a Bluetooth scan. Tapping 
+ * a device starts the `BluetoothChatService` in client mode and navigates 
+ * to the `ChatActivity`.
+ *
+ * 3. WHY IS IT IMPORTANT:
+ * This is the gateway to establishing a connection. Without this screen, 
+ * the user would have no way to select which device to chat with.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * Presentation Layer (MVVM View) for the device selection flow. It delegates 
+ * scanning logic to `DeviceViewModel` and `BluetoothDeviceScanner`.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [setupRecyclerViews()]: Initializes paired and discovered device lists.
+ * - [observeViewModel()]: Reacts to scan results and error messages.
+ * - [onDeviceSelected()]: Starts the service and navigates to chat.
+ * ============================================================================
  */
 class DeviceListActivity : AppCompatActivity() {
 

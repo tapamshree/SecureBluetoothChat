@@ -13,22 +13,39 @@ import com.yourapp.securechat.utils.Logger
 import com.yourapp.securechat.utils.PermissionHelper
 
 /**
- * BluetoothDeviceScanner — Discovers nearby Bluetooth devices.
+ * ============================================================================
+ * FILE: BluetoothDeviceScanner.kt
+ * ============================================================================
  *
- * Uses [BluetoothAdapter.startDiscovery] to find unpaired devices
- * and reports results via [LiveData]. Also provides access to
- * already-paired (bonded) devices from the adapter.
+ * 1. PURPOSE OF THE FILE:
+ * To discover nearby Bluetooth devices that are not yet paired (bonded) and 
+ * expose them as an observable list for the device selection UI.
  *
- * Lifecycle:
- *   1. Call [startDiscovery] to begin scanning
- *   2. Observe [discoveredDevices] for new devices as they appear
- *   3. Discovery auto-stops after ~12 seconds, or call [stopDiscovery]
- *   4. Call [unregister] when done (Activity.onDestroy)
+ * 2. HOW IT WORKS:
+ * It calls `BluetoothAdapter.startDiscovery()` which triggers the Android OS 
+ * to broadcast `ACTION_FOUND` intents for each nearby discoverable device. 
+ * A registered `BroadcastReceiver` intercepts these intents, extracts the 
+ * `BluetoothDevice` parcelable, deduplicates by MAC address, and appends 
+ * it to a `MutableLiveData` list that the UI observes in real time.
  *
- * Usage:
- *   val scanner = BluetoothDeviceScanner(context, adapter)
- *   scanner.discoveredDevices.observe(this) { devices -> updateUI(devices) }
- *   scanner.startDiscovery()
+ * 3. WHY IS IT IMPORTANT:
+ * Before two devices can chat, they need to find each other. This scanner is 
+ * responsible for populating the "Available Devices" section in the 
+ * `DeviceListActivity`, enabling users to select a target to connect to.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * Used by `DeviceListActivity` / `DeviceViewModel` during the initial connection 
+ * setup flow. Once a device is selected and a connection is established, the 
+ * scanner is no longer needed and should be unregistered.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [startDiscovery()]: Registers the receiver, clears the old list, and starts scanning.
+ * - [stopDiscovery()]: Cancels the ongoing discovery scan.
+ * - [getPairedDevices()]: Returns already-bonded devices (no scanning needed).
+ * - [unregister()]: Lifecycle-safe cleanup—stops discovery and unregisters the receiver.
+ * - [discoveredDevices]: LiveData list that the UI observes for real-time updates.
+ * - [isScanning]: LiveData boolean reflecting whether a scan is currently active.
+ * ============================================================================
  */
 class BluetoothDeviceScanner(
     private val context: Context,

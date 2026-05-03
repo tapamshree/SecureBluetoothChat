@@ -6,21 +6,41 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * ============================================================
- * FILE: data/model/Models.kt
- * PROJECT: SecureBluetoothChat
- * ============================================================
- *
- * PURPOSE:
- * Consolidated data model source for the app's core domain objects:
- *   1) [ChatMessage]         - Room entity for persisted messages
- *   2) [BluetoothDeviceInfo] - runtime model for scanned/paired devices
- *   3) [ConversationSession] - Room entity for session metadata
- *
- * WHY CONSOLIDATED:
- * Historically these were split across multiple files and import paths,
- * which caused package drift (`data.ChatMessage` vs `data.model.ChatMessage`).
- * Keeping them together in one file enforces a single canonical package path.
+ * ============================================================================
+ * FILE: Models.kt
+ * ============================================================================
+ * 
+ * 1. PURPOSE OF THE FILE:
+ * To provide the consolidated Domain Models (Kotlin data classes) representing 
+ * the core business objects within the application.
+ * 
+ * 2. HOW IT WORKS:
+ * These data classes define the "shape" of the data. 
+ * - `ChatMessage` and `ConversationSession` are annotated with `@Entity(tableName = ...)`. 
+ *   This signals the Android Room Database compiler to auto-generate SQLite tables matching 
+ *   these fields.
+ * - `BluetoothDeviceInfo` is entirely stateless and in-memory, mapping raw Android 
+ *   `BluetoothDevice` OS objects into pure Kotlin objects that the UI can safely consume.
+ * 
+ * 3. WHY IS IT IMPORTANT:
+ * Having a single source of truth for object definitions is critical to prevent 
+ * "Package Drift". If the Database expects a message to look one way, but the UI 
+ * expects it differently, the app crashes. Centralizing them ensures the entire 
+ * architecture shares the exact same understanding of a "Message" or a "Device".
+ * 
+ * 4. ROLE IN THE PROJECT:
+ * This is the purest layer of the application (Domain Layer). Everything else—UI, 
+ * Repositories, Database DAOs, and the Bluetooth service—depends on these models to 
+ * shuttle data back and forth. 
+ * 
+ * 5. WHAT DOES EACH PART DO:
+ * - [ChatMessage]: Represents a single bubble in a chat. Holds sender info, timestamps, 
+ *   content string, and delivery status (SENDING, SENT, FAILED). Annotated for Room SQLite.
+ * - [BluetoothDeviceInfo]: Represents a nearby phone. Holds its MAC address, Bluetooth Name,
+ *   and current Bond/Paired state. Not saved to SQLite, just used by RecyclerView adapters.
+ * - [ConversationSession]: Represents a running chat instance. Used to group multiple 
+ *   [ChatMessage] objects together logically in the database.
+ * ============================================================================
  */
 
 @Entity(

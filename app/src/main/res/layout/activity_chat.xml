@@ -172,6 +172,9 @@
             app:layout_constraintEnd_toEndOf="parent" />
 
 
+
+
+
         <!-- ====================================================
              ENCRYPTION STATUS BANNER
              A slim persistent strip just above the input bar
@@ -190,6 +193,9 @@
             app:cardElevation="0dp"
             app:strokeColor="@color/status_encrypted_badge"
             app:strokeWidth="1dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
             app:layout_constraintBottom_toTopOf="@id/inputBar"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -218,16 +224,25 @@
 
                 <!--
                     ENCRYPTION LABEL
-                    Static text. Never changes — encryption is
-                    always on and cannot be disabled.
+                    Clickable to allow user to simulate changing encryption.
                 -->
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:id="@+id/encryptionLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
                     android:layout_height="wrap_content"
                     android:text="@string/encrypted_label"
                     android:textAppearance="@style/TextAppearance.SecureBluetoothChat.Caption"
                     android:textColor="@color/status_encrypted_badge"
                     android:textSize="11sp" />
+
+                <!-- Dropdown indicator -->
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@android:drawable/arrow_down_float"
+                    app:tint="@color/status_encrypted_badge"
+                    android:contentDescription="Select encryption" />
 
             </LinearLayout>
 

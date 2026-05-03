@@ -237,6 +237,65 @@
                         android:textColor="@color/text_secondary"
                         android:lineSpacingMultiplier="1.3" />
 
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/pref_encryption_protocol"
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodyMedium"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/pref_encryption_protocol_summary"
+                        android:textAppearance="@style/TextAppearance.SecureBluetoothChat.BodySmall"
+                        android:textColor="@color/text_secondary"
+                        android:lineSpacingMultiplier="1.3" />
+
+                    <RadioGroup
+                        android:id="@+id/rgEncryptionProtocol"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.radiobutton.MaterialRadioButton
+                            android:id="@+id/radioEncryptionAes"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/encryption_aes"
+                            android:textColor="@color/text_primary"
+                            app:buttonTint="@color/brand_primary" />
+
+                        <com.google.android.material.radiobutton.MaterialRadioButton
+                            android:id="@+id/radioEncryptionRsa"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/encryption_rsa"
+                            android:textColor="@color/text_primary"
+                            app:buttonTint="@color/brand_primary" />
+
+                        <com.google.android.material.radiobutton.MaterialRadioButton
+                            android:id="@+id/radioEncryptionTwofish"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/encryption_twofish"
+                            android:textColor="@color/text_primary"
+                            app:buttonTint="@color/brand_primary" />
+
+                        <com.google.android.material.radiobutton.MaterialRadioButton
+                            android:id="@+id/radioEncryptionEcc"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/encryption_ecc"
+                            android:textColor="@color/text_primary"
+                            app:buttonTint="@color/brand_primary" />
+
+                    </RadioGroup>
+
                     <!-- Status row: lock icon + status text -->
                     <LinearLayout
                         android:layout_width="match_parent"

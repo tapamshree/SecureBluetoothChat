@@ -21,21 +21,44 @@ import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * KeyManager — Handles all AES key lifecycle operations:
- *
- *  1. Generate a new AES-256 key inside the Android Keystore (hardware-backed
- *     on supported devices — keys never leave the secure element).
- *  2. Retrieve an existing key from the Keystore by alias.
- *  3. Delete a key from the Keystore (e.g., on session end).
- *  4. Generate a raw in-memory AES-256 key (used for session keys exchanged
- *     over the Bluetooth handshake).
- *  5. Derive a key from a PIN/passphrase using PBKDF2.
- *
- * Android Keystore keys are tied to the device and cannot be exported,
- * making them ideal for the long-term identity key.
- *
- * Session keys (ephemeral, one per connection) are kept in memory only
- * and optionally stored in Keystore under [KEYSTORE_ALIAS_SESSION].
+ * ============================================================================
+ * FILE: KeyManager.kt
+ * ============================================================================
+ * 
+ * 1. PURPOSE OF THE FILE:
+ * To handle the complete lifecycle (generation, storage, retrieval, and deletion) 
+ * of AES-256 SecretKeys used by the application for both identity verification and 
+ * active chat sessions.
+ * 
+ * 2. HOW IT WORKS:
+ * It bridges the gap between raw cryptographic key bytes and the physical Android OS 
+ * `KeyStore`. Specifically, it uses `KeyGenerator` initialized with `KeyGenParameterSpec`
+ * to request the Android OS to generate keys inside the secure hardware (StrongBox/TEE).
+ * It also handles raw ephemeral key generation for short-lived chat sessions and 
+ * delegates PBKDF2 derivations for password-based keys.
+ * 
+ * 3. WHY IS IT IMPORTANT:
+ * If an AES key is leaked, the cipher is broken. By using the Android Keystore, this 
+ * file ensures that the master identity key never touches RAM and cannot be exported.
+ * Proper key management prevents attackers from stealing the keys via malware or 
+ * physical device extraction.
+ * 
+ * 4. ROLE IN THE PROJECT:
+ * The KeyManager is the "Vault". It provides `AESCipher` with the actual keys it 
+ * needs to perform encryption, and is utilized heavily by the `BluetoothChatService` 
+ * during the initial handshake sequence to setup the session secret.
+ * 
+ * 5. WHAT DOES EACH PART DO:
+ * - [generateKeystoreKey()]: Inks a new hardware-backed AES-256 key into the Android OS.
+ * - [getKeystoreKey()]: Safely looks up an existing key without exporting its material.
+ * - [getOrCreateKeystoreKey()]: Convenience method ensuring a key is always available.
+ * - [clearSessionKey() / deleteKeystoreKey()]: Securely wipes keys from the device to 
+ *   guarantee forward secrecy.
+ * - [generateSessionKey()]: Generates volatile, RAM-only AES keys intended to die when 
+ *   the Bluetooth socket closes.
+ * - [deriveKeyFromPassphrase()]: Uses PBKDF2 to turn a weak human password into a 
+ *   strong 256-bit AES key.
+ * ============================================================================
  */
 class KeyManager(private val context: Context) {
 

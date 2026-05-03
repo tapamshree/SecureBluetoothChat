@@ -10,27 +10,41 @@ import com.yourapp.securechat.utils.Logger
 import kotlinx.coroutines.flow.Flow
 
 /**
- * ChatRepository — Data access gateway for chat and session features.
- *
- * ============================================================
- * ARCHITECTURAL ROLE
- * ============================================================
- * ViewModels should interact with this repository rather than talking
- * to DAOs directly. This keeps data-source details in one place and
- * allows us to evolve storage strategy later (cache, remote sync, etc.)
- * without rewriting UI layer code.
- *
- * ============================================================
- * COMPATIBILITY NOTES
- * ============================================================
- * The current project has mixed call sites:
- *   - Some code expects only MessageDao in constructor.
- *   - Some code expects both MessageDao + SessionDao.
- *   - Some code expects Flow from getMessages.
- *   - Some code expects deleteConversation(), others clearConversation().
- *
- * To reduce integration breakage while cleanup is ongoing, this class
- * intentionally supports both styles via overloads/aliases.
+ * ============================================================================
+ * FILE: ChatRepository.kt
+ * ============================================================================
+ * 
+ * 1. PURPOSE OF THE FILE:
+ * To provide a clean, unified API for the ViewModels to access chat and session data 
+ * without needing to know whether the data comes from a local SQLite database, 
+ * in-memory cache, or a cloud server.
+ * 
+ * 2. HOW IT WORKS:
+ * It implements the Repository Pattern. It takes the lower-level Room DAOs 
+ * (`MessageDao` and `SessionDao`) as constructor dependencies. When a `ChatViewModel` 
+ * needs messages, it calls `chatRepository.getMessages()`, which conceptually abstracts
+ * away the raw SQL logic inside `Daos.kt`. 
+ * 
+ * 3. WHY IS IT IMPORTANT:
+ * If the UI components (ViewModels/Activities) talked directly to DAOs, the codebase 
+ * would be tightly coupled to Room/SQLite. By introducing this repository, we can 
+ * easily add logic (like merging a local SQLite cache with a remote REST API) in the 
+ * future without breaking a single line of UI code.
+ * 
+ * 4. ROLE IN THE PROJECT:
+ * It forms the critical middle layer of the MVVM architecture (Model-View-ViewModel). 
+ * It sits above the Data layer (`AppDatabase`, `Daos`) and below the Presentation 
+ * layer (`ChatViewModel`).
+ * 
+ * 5. WHAT DOES EACH PART DO:
+ * - [Internal variables]: Receives DAOs via Dependency Injection (constructor).
+ * - [getMessages() / getMessagesLiveData()]: Fetches continuous streams of data from 
+ *   Room, bridged into Kotlin Flow or LiveData streams for the UI.
+ * - [saveMessage() / updateMessageStatus()]: Forwarding operations to `MessageDao`.
+ * - [createSession() / endSession()]: Forwarding operations to `SessionDao`.
+ * - [requireSessionDao()]: Internal safeguard allowing legacy instantiation while 
+ *   protecting against NullPointerExceptions.
+ * ============================================================================
  */
 class ChatRepository(
     private val messageDao: MessageDao,

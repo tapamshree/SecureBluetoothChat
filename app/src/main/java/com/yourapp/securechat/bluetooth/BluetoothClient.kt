@@ -6,27 +6,36 @@ import com.yourapp.securechat.utils.Logger
 import java.io.IOException
 
 /**
- * BluetoothClient — Initiates an outgoing Bluetooth connection to a remote device.
+ * ============================================================================
+ * FILE: BluetoothClient.kt
+ * ============================================================================
  *
- * Creates an RFCOMM socket and attempts to connect to the remote device's
- * server (which should be running [BluetoothServer] with the same SPP UUID).
+ * 1. PURPOSE OF THE FILE:
+ * To initiate an outgoing Bluetooth RFCOMM connection to a remote device 
+ * that is running `BluetoothServer`.
  *
- * Includes retry logic (configurable via [BluetoothConstants]) for
- * transient connection failures.
+ * 2. HOW IT WORKS:
+ * It calls `device.createRfcommSocketToServiceRecord()` using the shared SPP UUID, 
+ * then invokes the blocking `socket.connect()` on a background thread 
+ * ("BT-Client-Connect"). If the connection fails, it retries up to 
+ * `MAX_CONNECT_RETRIES` times with a configurable delay between attempts.
  *
- * Lifecycle:
- *   1. Create instance with the target device and a connection callback
- *   2. Call [connect] — runs on a background thread
- *   3. On success → callback fires with the connected socket
- *   4. On failure → error callback fires
- *   5. Call [cancel] to abort a connection attempt
+ * 3. WHY IS IT IMPORTANT:
+ * This is the active/initiating half of the Bluetooth handshake. When the user 
+ * taps a device in the device list and chooses to connect, this class is what 
+ * physically creates the RFCOMM socket channel to the remote phone.
  *
- * Usage:
- *   val client = BluetoothClient(device,
- *       onConnected = { socket -> connectionManager.connect(socket) },
- *       onFailed = { error -> showError(error) }
- *   )
- *   client.connect()
+ * 4. ROLE IN THE PROJECT:
+ * Used exclusively by `BluetoothChatService` when the user selects "Find a Device" 
+ * and picks a target. On success, the socket is handed off to 
+ * `BluetoothConnectionManager` for ongoing I/O.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [connect()]: Spawns the background thread, creates the socket, and retries on failure.
+ * - [cancel()]: Interrupts the connection attempt and closes the socket.
+ * - [isAttempting]: Volatile boolean letting callers check if a connection is in progress.
+ * - [onConnected / onFailed]: Callbacks fired on success or exhaustion of retries.
+ * ============================================================================
  */
 class BluetoothClient(
     private val device: BluetoothDevice,

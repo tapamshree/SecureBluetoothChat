@@ -7,26 +7,41 @@ import java.io.InputStream
 import java.io.OutputStream
 
 /**
- * BluetoothConnectionManager — Manages an active Bluetooth socket connection.
+ * ============================================================================
+ * FILE: BluetoothConnectionManager.kt
+ * ============================================================================
  *
- * After [BluetoothServer] or [BluetoothClient] establishes a socket,
- * this class takes ownership and handles:
- * - Reading incoming bytes on a background thread
- * - Writing outgoing bytes (thread-safe)
- * - Detecting connection loss
- * - Cleaning up streams and socket on disconnect
+ * 1. PURPOSE OF THE FILE:
+ * To manage an active, established Bluetooth socket connection—handling 
+ * continuous reading, thread-safe writing, and graceful disconnect detection.
  *
- * All raw bytes pass through this class — encryption/decryption is handled
- * by the caller (typically [BluetoothChatService] using [SecureMessageWrapper]).
+ * 2. HOW IT WORKS:
+ * After `BluetoothServer` or `BluetoothClient` establishes a raw socket, this 
+ * class takes ownership via `connect(socket)`. It opens `InputStream` and 
+ * `OutputStream`, then spawns a background read thread ("BT-Read") that uses 
+ * a length-prefixed protocol: it reads a 4-byte big-endian integer representing 
+ * the message length, followed by exactly that many bytes of payload data.
  *
- * Usage:
- *   val manager = BluetoothConnectionManager(
- *       onDataReceived = { bytes, length -> processBytes(bytes, length) },
- *       onConnectionLost = { reason -> handleDisconnect(reason) }
- *   )
- *   manager.connect(socket)
- *   manager.write(encryptedBytes)
- *   manager.disconnect()
+ * 3. WHY IS IT IMPORTANT:
+ * Raw Bluetooth sockets deliver a continuous stream of bytes with no message 
+ * boundaries. Without the length-prefix framing implemented here, the receiver 
+ * would have no idea where one encrypted message ends and the next begins, 
+ * causing catastrophic decryption failures.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * This is the Transport Layer. It sits between the raw socket and the 
+ * `BluetoothChatService`. The service feeds it encrypted byte arrays via 
+ * `write()`, and receives incoming encrypted byte arrays via the 
+ * `onDataReceived` callback.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [connect()]: Takes ownership of a connected socket, opens I/O streams, starts read thread.
+ * - [disconnect()]: Safely tears down streams, socket, and thread.
+ * - [write()]: Thread-safe method that writes a 4-byte length header + payload bytes.
+ * - [startReadThread()]: Background loop that reads length-prefixed messages continuously.
+ * - [readFully()]: Ensures exactly N bytes are read before returning (handles partial reads).
+ * - [handleConnectionLost()]: Fires the disconnect callback and cleans up resources.
+ * ============================================================================
  */
 class BluetoothConnectionManager(
     private val onDataReceived: (ByteArray, Int) -> Unit,

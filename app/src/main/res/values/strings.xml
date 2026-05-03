@@ -33,6 +33,7 @@
         7. Error messages
         8. Notification strings
         9. Dialog buttons and confirmations
+
     ============================================================
 -->
 <resources>
@@ -41,8 +42,10 @@
          SECTION 1: App-Level
          General identity strings used across the whole app.
          ======================================================== -->
-    <string name="app_name">SecureBluetoothChat</string>
+    <string name="app_name">CipherLink</string>
     <string name="app_tagline">Encrypted. Private. Offline.</string>
+    <string name="profile_picture">Profile picture</string>
+    <string name="bluetooth_status">Bluetooth Status</string>
 
 
     <!-- ========================================================
@@ -59,10 +62,20 @@
          connection) or Client (scan and connect to another device).
          ======================================================== -->
     <string name="main_title">Choose Mode</string>
+    <string name="hello">Hello..!!</string>
+    <string name="home_hero_subtitle">Start a nearby encrypted chat session without internet. Pick your role and connect peer-to-peer over Bluetooth.</string>
+    <string name="home_choose_path">Connection Mode</string>
     <!-- Server mode: this device listens for an incoming BT connection -->
     <string name="btn_start_server">Wait for Connection</string>
+    <string name="server_mode_detail">Make this phone visible for 2 minutes and wait for a trusted nearby device to join.</string>
     <!-- Client mode: this device scans and initiates the connection -->
     <string name="btn_start_client">Find a Device</string>
+    <string name="client_mode_detail">Scan paired and nearby Bluetooth devices, then launch a secure encrypted chat.</string>
+    <string name="footer_copyright">copyright @TeamCipherLink</string>
+    <string name="footer_creators">Shraddha DK\nSohaan Gaba\nShreeram Patel</string>
+
+    <string name="host_game">Host Game</string>
+    <string name="join_game">Join Game</string>
 
 
     <!-- ========================================================
@@ -79,6 +92,7 @@
     <string name="available_devices">Available Devices</string>
     <string name="btn_scan">Scan</string>
     <string name="btn_stop_scan">Stop</string>
+    <string name="stop_scan">Stop Scan</string>
 
 
     <!-- ========================================================
@@ -113,6 +127,24 @@
     <string name="pref_encryption_label">Encryption</string>
     <!-- Informational only — encryption cannot be turned off -->
     <string name="pref_encryption_summary">AES-256-GCM (always on)</string>
+    <string name="pref_encryption_protocol">Encryption Protocol</string>
+    <string name="pref_encryption_protocol_summary">Choose the protocol label shown across the app. Encryption remains required for every session.</string>
+    <string name="encryption_aes">AES-256</string>
+    <string name="encryption_rsa">RSA-2048</string>
+    <string name="encryption_twofish">Twofish-256</string>
+    <string name="encryption_ecc">ECC-X25519</string>
+    <string-array name="encryption_protocol_entries">
+        <item>@string/encryption_aes</item>
+        <item>@string/encryption_rsa</item>
+        <item>@string/encryption_twofish</item>
+        <item>@string/encryption_ecc</item>
+    </string-array>
+    <string-array name="encryption_protocol_values">
+        <item>AES-256</item>
+        <item>RSA-2048</item>
+        <item>Twofish-256</item>
+        <item>ECC-X25519</item>
+    </string-array>
     <string name="pref_clear_history">Clear Chat History</string>
     <string name="pref_clear_history_confirm">
         This will permanently delete all messages. Continue?
@@ -160,4 +192,19 @@
     <string name="btn_disconnect">Disconnect</string>
     <string name="disconnect_confirm">Are you sure you want to disconnect?</string>
 
+    <!-- ========================================================
+         SECTION 10: Chess Integration
+         Quick-launch chess game from within a connected chat.
+         ======================================================== -->
+    <string name="play_chess">Play Chess</string>
+    <string name="chess_not_installed">Bluetooth Chess app is not installed</string>
+
+    <!-- Chess Related Strings -->
+    <string name="your_turn">Your Turn</string>
+    <string name="waiting">Waiting…</string>
+    <string name="game_over">Game Over</string>
+    <string name="checkmate">Checkmate</string>
+    <string name="stalemate">Stalemate</string>
+    <string name="connection_lost">Connection Lost</string>
+    <string name="resign">Resign</string>
 </resources>

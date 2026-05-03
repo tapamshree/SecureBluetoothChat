@@ -12,13 +12,35 @@ import com.yourapp.securechat.R
 import com.yourapp.securechat.utils.Logger
 
 /**
- * SplashActivity — App entry point / launcher screen.
+ * ============================================================================
+ * FILE: SplashActivity.kt
+ * ============================================================================
  *
- * Shows a branded splash screen for a short duration, then navigates
- * to [MainActivity]. Uses the AndroidX SplashScreen API for a smooth
- * system-level splash on Android 12+ and a manual delay on older versions.
+ * 1. PURPOSE OF THE FILE:
+ * To display a branded splash screen on app startup, providing a smooth 
+ * visual transition while background initialization completes.
  *
- * Declared in AndroidManifest.xml with the LAUNCHER intent filter.
+ * 2. HOW IT WORKS:
+ * It uses the AndroidX SplashScreen API (`installSplashScreen()`) for system-
+ * level splash integration on Android 12+. On older versions, it manually 
+ * displays `activity_splash.xml` for a fixed delay (1.5s), then navigates 
+ * to `MainActivity` and removes itself from the back stack.
+ *
+ * 3. WHY IS IT IMPORTANT:
+ * First impressions matter. This screen ensures the user sees a branded, 
+ * polished loading experience instead of a blank white screen while the 
+ * `SecureChatApplication.onCreate()` initializes the database and crypto.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * Declared in `AndroidManifest.xml` as the LAUNCHER Activity. It is the 
+ * very first screen users see and acts as a gateway to `MainActivity`.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [installSplashScreen()]: Hooks into the Android 12+ native splash API.
+ * - [setKeepOnScreenCondition]: Holds the splash visible for the delay duration.
+ * - [navigateToMain()]: Launches `MainActivity` with a fade transition.
+ * - [SPLASH_DELAY_MS]: Configurable duration (default 1.5 seconds).
+ * ============================================================================
  */
 @SuppressLint("CustomSplashScreen") // We're using AndroidX SplashScreen compat
 class SplashActivity : AppCompatActivity() {

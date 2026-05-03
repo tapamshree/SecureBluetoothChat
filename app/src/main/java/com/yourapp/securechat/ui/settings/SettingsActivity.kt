@@ -15,43 +15,36 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * SettingsActivity — user preferences and local data controls.
+ * ============================================================================
+ * FILE: SettingsActivity.kt
+ * ============================================================================
  *
- * ============================================================================
- * PURPOSE
- * ============================================================================
- * This screen provides a compact control center for:
- *  - Display name preference (used in messaging/session UI)
- *  - Encryption visibility (informational status only)
- *  - Local history maintenance (clear stored Room data)
+ * 1. PURPOSE OF THE FILE:
+ * To provide a dedicated hub for user-configurable preferences, such as 
+ * display name and local history management.
  *
- * ============================================================================
- * DATA FLOW OVERVIEW
- * ============================================================================
- * UI (activity_settings.xml)
- *    -> user edits/taps
- * SharedPreferences
- *    <- display name load/save
- * Room (AppDatabase)
- *    <- clear-history destructive action
+ * 2. HOW IT WORKS:
+ * It hosts the `SettingsFragment` used for preference selection. It provides 
+ * the standard Activity entry point, toolbar setup, and handles the 
+ * underlying `SharedPreferences` logic for persisting user-specified values 
+ * like the display name. It also coordinates destructive Database operations 
+ * (clearing history) through a confirmation dialog.
  *
- * ============================================================================
- * DESIGN NOTES
- * ============================================================================
- *  - UI is backed by `activity_settings.xml` (ViewBinding: [ActivitySettingsBinding]).
- *  - Preferences are stored in app-private SharedPreferences.
- *  - Destructive actions (clear history) are guarded with confirmation dialog.
+ * 3. WHY IS IT IMPORTANT:
+ * Privacy and identity are key in CipherLink. This file ensures users can 
+ * maintain their preferred identity and have control over their local 
+ * messaging audits.
  *
- * ============================================================================
- * DATA OWNERSHIP
- * ============================================================================
- *  - Display name: SharedPreferences key = [KEY_DISPLAY_NAME]
- *  - Messages/sessions: Room database (`AppDatabase`)
+ * 4. ROLE IN THE PROJECT:
+ * Presentation Layer. Acts as the entry point for the Settings sub-module.
  *
+ * 5. WHAT DOES EACH PART DO:
+ * - [setupToolbar()]: Configures the Action Bar with a back navigation button.
+ * - [loadCurrentValues()]: Reads existing prefs and populates UI inputs.
+ * - [saveDisplayName()]: Persists changes to the local device storage.
+ * - [clearHistory()]: Uses Dispatchers.IO to wipe message logs from Room DB.
+ * - [confirmClearHistory()]: Dialog guardrail to prevent accidental deletion.
  * ============================================================================
- * NAVIGATION
- * ============================================================================
- *  - Toolbar back button simply calls `finish()` and returns to previous screen.
  */
 class SettingsActivity : AppCompatActivity() {
 
@@ -61,7 +54,9 @@ class SettingsActivity : AppCompatActivity() {
         // SharedPreferences storage
         private const val PREF_FILE = "secure_chat_prefs"
         private const val KEY_DISPLAY_NAME = "display_name"
+        private const val KEY_ENCRYPTION_PROTOCOL = "encryption_protocol"
         private const val DEFAULT_DISPLAY_NAME = "Anonymous"
+        private const val DEFAULT_ENCRYPTION_PROTOCOL = "AES-256"
     }
 
     private lateinit var binding: ActivitySettingsBinding
@@ -118,9 +113,13 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.etDisplayName.setText(displayName)
 
-        // Encryption in this project is always-on by design.
-        binding.tvEncryptionStatus.text = getString(R.string.encrypted_label)
-        binding.tvEncryptionSummary.text = getString(R.string.pref_encryption_summary)
+        val encryptionProtocol = prefs.getString(
+            KEY_ENCRYPTION_PROTOCOL,
+            DEFAULT_ENCRYPTION_PROTOCOL
+        ).orEmpty().ifBlank { DEFAULT_ENCRYPTION_PROTOCOL }
+
+        binding.rgEncryptionProtocol.check(radioIdForProtocol(encryptionProtocol))
+        updateEncryptionText(encryptionProtocol)
     }
 
     // -------------------------------------------------------------------------
@@ -136,6 +135,10 @@ class SettingsActivity : AppCompatActivity() {
         // Clear local history (destructive)
         binding.btnClearHistory.setOnClickListener {
             confirmClearHistory()
+        }
+
+        binding.rgEncryptionProtocol.setOnCheckedChangeListener { _, checkedId ->
+            saveEncryptionProtocol(encryptionProtocolForRadioId(checkedId))
         }
     }
 
@@ -160,6 +163,15 @@ class SettingsActivity : AppCompatActivity() {
         binding.etDisplayName.setText(finalName)
         showSnack("Display name saved")
         Logger.d(TAG, "Display name updated: $finalName")
+    }
+
+    private fun saveEncryptionProtocol(protocol: String) {
+        prefs().edit()
+            .putString(KEY_ENCRYPTION_PROTOCOL, protocol)
+            .apply()
+
+        updateEncryptionText(protocol)
+        showSnack("$protocol selected")
     }
 
     /**
@@ -232,5 +244,29 @@ class SettingsActivity : AppCompatActivity() {
      */
     private fun showSnack(message: String) {
         Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).show()
+    }
+
+    private fun updateEncryptionText(protocol: String) {
+        binding.tvEncryptionStatus.text = "$protocol Encrypted"
+        binding.tvEncryptionSummary.text =
+            "$protocol selected. Secure sessions still require encryption for every message."
+    }
+
+    private fun encryptionProtocolForRadioId(checkedId: Int): String {
+        return when (checkedId) {
+            R.id.radioEncryptionRsa -> getString(R.string.encryption_rsa)
+            R.id.radioEncryptionTwofish -> getString(R.string.encryption_twofish)
+            R.id.radioEncryptionEcc -> getString(R.string.encryption_ecc)
+            else -> getString(R.string.encryption_aes)
+        }
+    }
+
+    private fun radioIdForProtocol(protocol: String): Int {
+        return when (protocol) {
+            getString(R.string.encryption_rsa) -> R.id.radioEncryptionRsa
+            getString(R.string.encryption_twofish) -> R.id.radioEncryptionTwofish
+            getString(R.string.encryption_ecc) -> R.id.radioEncryptionEcc
+            else -> R.id.radioEncryptionAes
+        }
     }
 }

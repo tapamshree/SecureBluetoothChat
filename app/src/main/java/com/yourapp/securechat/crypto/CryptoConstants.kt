@@ -1,14 +1,40 @@
 package com.yourapp.securechat.crypto
 
 /**
- * Central constants for AES-GCM encryption used throughout the app.
- *
- * Algorithm choice: AES/GCM/NoPadding
- * - AES-256 for strong symmetric encryption
- * - GCM mode provides authenticated encryption (AEAD):
- *     → Encrypts the data (confidentiality)
- *     → Produces an auth tag (integrity + tamper detection)
- * - NoPadding: GCM is a stream mode, no block padding needed
+ * ============================================================================
+ * FILE: CryptoConstants.kt
+ * ============================================================================
+ * 
+ * 1. PURPOSE OF THE FILE:
+ * This file serves as the centralized configuration dictionary for all cryptographic
+ * operations within the application. It defines the specific algorithms, key sizes,
+ * byte offsets, and keystore aliases used by the security layer.
+ * 
+ * 2. HOW IT WORKS:
+ * It uses a Kotlin `object` to statically expose constant variables (primitive 
+ * constants evaluated at compile-time). Other components (like AESCipher or KeyManager)
+ * reference these constants instead of hardcoding strings or numbers, ensuring 
+ * cryptographic parameters remain uniform across the entire app.
+ * 
+ * 3. WHY IS IT IMPORTANT:
+ * Cryptography requires absolute precision. A single mismatched byte size or algorithm
+ * string between the sender and receiver—or between key generation and encryption—
+ * will cause the entire security protocol to fail. Centralizing these constants prevents
+ * fatal mismatches and makes it trivial to upgrade the protocol security later (e.g., 
+ * changing key size or iterations).
+ * 
+ * 4. ROLE IN THE PROJECT:
+ * It acts as the "Settings Configuration" for the whole `crypto` package. It sits at the
+ * base dependency level; everything in the crypto layer relies on it, but it relies on nothing.
+ * 
+ * 5. WHAT DOES EACH PART DO:
+ * - [Algorithm Identifiers]: Defines exact cipher strings like "AES/GCM/NoPadding".
+ * - [Key Parameters]: Sets the AES key size to 256-bit (maximum security).
+ * - [GCM Parameters]: Defines Initialization Vector (IV) size (12 bytes) and Tag size (16 bytes).
+ * - [PBKDF2 Parameters]: Configures the iteration count (100,000) for deriving keys from passwords.
+ * - [Android Keystore Aliases]: Hardcodes the internal string names for saving keys to the OS.
+ * - [Wire Format Offsets]: Defines the exact byte math to parse incoming encrypted data packets.
+ * ============================================================================
  */
 object CryptoConstants {
 

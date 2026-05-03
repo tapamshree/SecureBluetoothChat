@@ -271,6 +271,13 @@
 
     </style>
 
+    <style name="Widget.SecureBluetoothChat.Toolbar.Home"
+        parent="Widget.SecureBluetoothChat.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:elevation">0dp</item>
+        <item name="titleTextAppearance">@style/TextAppearance.SecureBluetoothChat.ToolbarTitle</item>
+    </style>
+
 
     <!-- ========================================================
          SECTION 5: Text Appearance Overrides
@@ -309,6 +316,19 @@
     <style name="TextAppearance.SecureBluetoothChat.Caption"
         parent="TextAppearance.MaterialComponents.Caption">
         <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+    <style name="TextAppearance.SecureBluetoothChat.ToolbarTitle"
+        parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:textColor">@color/brand_primary_light</item>
+        <item name="android:fontFamily">sans-serif-black</item>
+        <item name="android:textStyle">bold|italic</item>
+        <item name="android:textSize">22sp</item>
+        <item name="android:letterSpacing">0.16</item>
+        <item name="android:shadowColor">@color/palette_navy_900</item>
+        <item name="android:shadowDx">0</item>
+        <item name="android:shadowDy">2</item>
+        <item name="android:shadowRadius">8</item>
     </style>
 
 </resources>

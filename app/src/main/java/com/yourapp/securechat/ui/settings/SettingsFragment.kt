@@ -1,68 +1,35 @@
-/*
-    ============================================================
-    FILE: ui/settings/SettingsFragment.kt
-    PROJECT: SecureBluetoothChat
-    ============================================================
-
-    PURPOSE:
-        The PreferenceFragmentCompat that hosts all user-configurable
-        settings for the app. It is hosted inside SettingsActivity
-        and loaded into its FragmentContainerView at runtime.
-
-    WHY PreferenceFragmentCompat AND NOT A REGULAR FRAGMENT:
-        AndroidX Preference library gives us:
-            - Built-in SharedPreferences read/write for free
-            - Standard Material-styled preference rows (no custom
-              layouts needed for simple key/value settings)
-            - Automatic persistence — user changes are saved to
-              SharedPreferences the moment they tap/type
-        For an app this size it is far simpler than building a
-        custom settings screen with manual SharedPreferences calls.
-
-    PREFERENCES HOSTED HERE:
-        1. EditTextPreference  — Display Name
-               Key: "pref_display_name"
-               Default: "Anonymous"
-               Used by: ChatActivity to label outgoing messages
-               Persisted in: default SharedPreferences
-
-        2. Preference (read-only info row) — Encryption Info
-               Not editable — just shows "AES-256-GCM (always on)"
-               Tapping it shows an AlertDialog explaining the
-               encryption scheme to the user
-
-        3. Preference (action) — Clear Chat History
-               Tapping triggers an AlertDialog confirmation
-               On confirm: calls ChatRepository.clearAllMessages()
-               which issues a Room DELETE query wiping all rows
-               from the messages table
-
-    PREFERENCE XML SOURCE:
-        Preferences are defined in res/xml/preferences.xml
-        (File 17 — next in queue) and loaded via:
-            setPreferencesFromResource(R.xml.preferences, rootKey)
-        This keeps the preference structure in XML (declarative)
-        and the behaviour logic here in Kotlin (imperative).
-
-    SHARED PREFERENCES KEY CONSTANTS:
-        All preference keys are defined as companion object
-        constants here so other classes (ChatActivity, adapters)
-        can read the same keys without hardcoding strings:
-            SettingsFragment.KEY_DISPLAY_NAME
-            SettingsFragment.KEY_CLEAR_HISTORY
-
-    LIFECYCLE NOTE:
-        onCreatePreferences() is the PreferenceFragment equivalent
-        of onCreate() — it is where the preference XML is inflated
-        and click listeners are attached. It runs before onResume()
-        so preferences are ready by the time the user sees the screen.
-
-    DEPENDENCIES:
-        - androidx.preference:preference-ktx (add to build.gradle)
-        - ChatRepository (for clear history action)
-        - AppDatabase (to get the repository instance)
-    ============================================================
-*/
+/**
+ * ============================================================================
+ * FILE: SettingsFragment.kt
+ * ============================================================================
+ *
+ * 1. PURPOSE OF THE FILE:
+ * To provide the user interface for CipherLink's configuration settings, 
+ * leveraging the AndroidX Preference library for standardized UI rows.
+ *
+ * 2. HOW IT WORKS:
+ * It inflates `R.xml.preferences` into a `PreferenceFragmentCompat`. It 
+ * manages the binding between UI elements (EditTextPreference, Preference) 
+ * and their operational logic—such as showing information dialogs for 
+ * encryption or invoking database cleanup commands in the `ChatRepository`.
+ *
+ * 3. WHY IS IT IMPORTANT:
+ * This component handles the actual storage of user settings. By using the 
+ * Preference library, it ensures that settings are persisted atomically 
+ * and predictably across app restarts without manual boilerplate.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * Presentation Layer controller for settings. It interacts with 
+ * `SharedPreferences` for name storage and `ChatRepository` for data retention 
+ * policies.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [onCreatePreferences()]: Loads the XML resource and initializes bindings.
+ * - [setupDisplayNamePreference()]: Syncs the UI summary with the stored name.
+ * - [setupEncryptionInfoPreference()]: Provides technical details on AES-256-GCM.
+ * - [setupClearHistoryPreference()]: Orchestrates the destructive wipe of the DB.
+ * ============================================================================
+ */
 
 package com.yourapp.securechat.ui.settings
 

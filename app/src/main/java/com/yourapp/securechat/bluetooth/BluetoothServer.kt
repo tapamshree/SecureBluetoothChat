@@ -7,26 +7,37 @@ import com.yourapp.securechat.utils.Logger
 import java.io.IOException
 
 /**
- * BluetoothServer — Listens for and accepts incoming Bluetooth connections.
+ * ============================================================================
+ * FILE: BluetoothServer.kt
+ * ============================================================================
  *
- * Opens a server socket using RFCOMM/SPP and waits for a remote device
- * (running [BluetoothClient]) to connect. Once a client connects, the
- * resulting [BluetoothSocket] is passed to a callback for use by
- * [BluetoothConnectionManager].
+ * 1. PURPOSE OF THE FILE:
+ * To listen for and accept incoming Bluetooth RFCOMM connections from a remote 
+ * device that is running `BluetoothClient`.
  *
- * The server runs on its own thread and can be stopped at any time.
+ * 2. HOW IT WORKS:
+ * It opens a `BluetoothServerSocket` using `listenUsingRfcommWithServiceRecord()` 
+ * and spawns a dedicated background thread ("BT-Server-Accept") that blocks on 
+ * `serverSocket.accept()`. When a client connects, the resulting `BluetoothSocket` 
+ * is passed to the `onClientConnected` callback. The server socket is then closed 
+ * because this app only supports one-to-one connections.
  *
- * Lifecycle:
- *   1. Create instance with a connection callback
- *   2. Call [start] — opens server socket, blocks on accept()
- *   3. When a client connects → callback fires with the socket
- *   4. Call [stop] to close the server socket
+ * 3. WHY IS IT IMPORTANT:
+ * Without a server-side listener, the "Wait for Connection" mode in `MainActivity` 
+ * would have nothing to bind to. The server is the passive half of the Bluetooth 
+ * handshake—it is what allows the remote user's phone to "find" this device.
  *
- * Usage:
- *   val server = BluetoothServer(adapter) { socket ->
- *       connectionManager.connect(socket)
- *   }
- *   server.start()
+ * 4. ROLE IN THE PROJECT:
+ * Used exclusively by `BluetoothChatService` when the user selects "Wait for 
+ * Connection". Once a connection is accepted, the socket is handed off to 
+ * `BluetoothConnectionManager` for ongoing I/O.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [start()]: Opens the server socket and spawn the blocking accept thread.
+ * - [stop()]: Closes the server socket, which interrupts the blocking accept call.
+ * - [isListening]: A volatile boolean exposing whether the accept loop is active.
+ * - [onClientConnected callback]: Lambda fired once with the connected socket.
+ * ============================================================================
  */
 class BluetoothServer(
     private val adapter: BluetoothAdapter?,

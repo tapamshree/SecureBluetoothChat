@@ -8,16 +8,40 @@ import com.yourapp.securechat.data.model.ChatMessage
 import com.yourapp.securechat.data.model.ConversationSession
 
 /**
- * AppDatabase — Room database setup for SecureBluetoothChat.
- *
- * Contains two tables:
- * - `messages` — All chat messages (decrypted form)
- * - `sessions` — Conversation session metadata
- *
- * Uses a singleton pattern to avoid multiple database instances.
- *
- * Note: Messages are stored decrypted. For encrypted-at-rest storage,
- * consider replacing the default SQLite driver with SQLCipher.
+ * ============================================================================
+ * FILE: AppDatabase.kt
+ * ============================================================================
+ * 
+ * 1. PURPOSE OF THE FILE:
+ * To define and configure the SQLite database holding all unencrypted chat 
+ * histories and session records locally on the user's device.
+ * 
+ * 2. HOW IT WORKS:
+ * It utilizes the Android Room persistence library. The `@Database` annotation 
+ * wires together the `ChatMessage` and `ConversationSession` entity models with 
+ * the underlying SQLite layer. The `Room.databaseBuilder()` command physically 
+ * generates the database file ("secure_chat_db"). By returning abstract DAOs, it 
+ * gives repositories access to raw database operations.
+ * 
+ * 3. WHY IS IT IMPORTANT:
+ * Instantiating a database in Android is an extremely heavy operation that can 
+ * drag down the main thread. This class guarantees that only one single connection
+ * to SQLite exists across the entire app via the Singleton pattern and double-checked 
+ * thread synchronization mapping.
+ * 
+ * 4. ROLE IN THE PROJECT:
+ * This is the root anchor of the Local Data Storage. Without it, messages would 
+ * vanish the moment the user closes the app.
+ * 
+ * 5. WHAT DOES EACH PART DO:
+ * - [AppDatabase class]: The abstract shell bridging Kotlin code to SQLite.
+ * - [messageDao / sessionDao abstract getters]: Factory providers for database access.
+ * - [INSTANCE]: A `@Volatile` variable ensuring multiple threads all see the exact 
+ *   same database instance synchronously.
+ * - [getInstance()]: The Singleton entry point ensuring Thread-Safe instantiation.
+ * - [buildDatabase()]: Configures the database behavior—currently set to instantly
+ *   wipe all data if a schema change happens via `fallbackToDestructiveMigration()`.
+ * ============================================================================
  */
 @Database(
     entities = [

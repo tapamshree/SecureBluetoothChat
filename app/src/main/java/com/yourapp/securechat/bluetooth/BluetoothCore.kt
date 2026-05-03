@@ -15,15 +15,43 @@ import com.yourapp.securechat.utils.PermissionHelper
 import java.util.UUID
 
 /**
- * ============================================================
- * FILE: bluetooth/BluetoothCore.kt
- * PROJECT: SecureBluetoothChat
- * ============================================================
+ * ============================================================================
+ * FILE: BluetoothCore.kt
+ * ============================================================================
  *
- * PURPOSE:
- * Consolidated Bluetooth core primitives:
- *   - [BluetoothConstants]
- *   - [BluetoothController]
+ * 1. PURPOSE OF THE FILE:
+ * To consolidate the foundational Bluetooth primitives—shared constants and 
+ * the hardware adapter controller—into a single import target.
+ *
+ * 2. HOW IT WORKS:
+ * - [BluetoothConstants]: A Kotlin `object` exposing the SPP UUID, service name,
+ *   buffer sizes, and retry parameters used across the entire Bluetooth stack.
+ * - [BluetoothController]: Wraps `BluetoothManager` / `BluetoothAdapter` behind 
+ *   safe accessors that catch `SecurityException` gracefully. It also registers a 
+ *   `BroadcastReceiver` to observe hardware state changes (ON/OFF/TURNING_ON/OFF) 
+ *   and exposes them via `LiveData`.
+ *
+ * 3. WHY IS IT IMPORTANT:
+ * Bluetooth adapter access is inherently dangerous on Android—calling `adapter.name` 
+ * without the BLUETOOTH_CONNECT permission on Android 12+ throws a hard 
+ * `SecurityException` that instantly crashes the app. This file wraps every single 
+ * adapter call in try-catch blocks so the rest of the codebase never has to worry 
+ * about raw permission crashes.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * This is the lowest layer of the Bluetooth stack, sitting underneath `BluetoothServer`, 
+ * `BluetoothClient`, and `BluetoothDeviceScanner`. Every Bluetooth component imports 
+ * constants and the adapter reference from here.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [BluetoothConstants.SPP_UUID]: The universally recognized UUID for Serial Port 
+ *   Profile—both devices must agree on this to establish an RFCOMM channel.
+ * - [BluetoothController.adapter]: Lazy reference to the system Bluetooth adapter.
+ * - [BluetoothController.adapterState]: LiveData stream that pushes ON/OFF events 
+ *   to any observing Activity so the UI can react in real time.
+ * - [BluetoothController.getPairedDevices()]: Returns bonded devices with permission checks.
+ * - [registerStateReceiver / unregisterStateReceiver]: Lifecycle-safe BroadcastReceiver management.
+ * ============================================================================
  */
 
 object BluetoothConstants {

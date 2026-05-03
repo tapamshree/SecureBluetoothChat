@@ -71,3 +71,15 @@ captures/
 
 # Private data
 secrets/
+
+# Build caches
+.gradle/
+.gradle-local/
+
+# Graphify outputs
+graphify-out/
+
+# Temp log files
+branch.txt
+log.txt
+status.txt

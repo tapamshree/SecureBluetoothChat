@@ -17,6 +17,38 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/**
+ * ============================================================================
+ * FILE: DeviceViewModel.kt
+ * ============================================================================
+ *
+ * 1. PURPOSE OF THE FILE:
+ * To manage Bluetooth device scanning state and paired device lists in a 
+ * lifecycle-aware manner for the `DeviceListActivity`.
+ *
+ * 2. HOW IT WORKS:
+ * It wraps `BluetoothController` and `BluetoothDeviceScanner`, converting 
+ * their `LiveData` outputs into Kotlin `StateFlow` streams. It also provides 
+ * commands to start/stop scanning and exposes error messages via `SharedFlow`.
+ *
+ * 3. WHY IS IT IMPORTANT:
+ * Keeps scanning state alive across configuration changes and ensures the 
+ * scanner's `BroadcastReceiver` is properly unregistered when the ViewModel 
+ * is cleared.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * MVVM ViewModel for the device discovery flow. Bridges hardware-level 
+ * Bluetooth APIs to the UI layer.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [pairedDevices]: StateFlow of already-bonded devices.
+ * - [discoveredDevices]: StateFlow of newly found devices during a scan.
+ * - [isScanning]: StateFlow boolean reflecting active scan state.
+ * - [startScan() / stopScan()]: Controls for the discovery process.
+ * - [onCleared()]: Lifecycle cleanup for the scanner and controller.
+ * - [Factory]: Custom ViewModelProvider.Factory for constructor injection.
+ * ============================================================================
+ */
 class DeviceViewModel(
     private val controller: BluetoothController,
     private val scanner: BluetoothDeviceScanner

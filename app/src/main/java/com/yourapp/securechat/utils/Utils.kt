@@ -19,17 +19,37 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * ============================================================
- * FILE: utils/Utils.kt
- * PROJECT: SecureBluetoothChat
- * ============================================================
+ * ============================================================================
+ * FILE: Utils.kt
+ * ============================================================================
  *
- * PURPOSE:
- * Consolidated utility source. Hosts stateless helper objects:
- *   - [ByteUtils]
- *   - [Extensions]
- *   - [PermissionHelper]
- *   - [Logger]
+ * 1. PURPOSE OF THE FILE:
+ * To consolidate all generic, stateless utility objects used throughout the 
+ * application into a single import target, avoiding scattered helper files.
+ *
+ * 2. HOW IT WORKS:
+ * Each utility is defined as a Kotlin `object` (singleton), ensuring zero 
+ * allocation overhead. Extension functions are scoped inside their respective 
+ * objects to prevent global namespace pollution.
+ *
+ * 3. WHY IS IT IMPORTANT:
+ * Centralizing utilities prevents duplication (e.g., two different hex 
+ * converters) and provides a consistent API surface for logging, permissions, 
+ * and view visibility toggles.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * This is the "Swiss Army Knife" file. Every layer—UI, Bluetooth, Crypto—
+ * imports from here for cross-cutting concerns.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [ByteUtils]: Hex and Base64 conversion helpers for debugging encrypted payloads.
+ * - [Extensions]: Kotlin extension functions for Toasts, View visibility, and 
+ *   timestamp formatting.
+ * - [PermissionHelper]: Centralized Bluetooth permission checks, request launchers, 
+ *   and adapter retrieval—handling both Android <12 and 12+ permission models.
+ * - [Logger]: Globally toggleable logging wrapper around Android's `Log` class, 
+ *   automatically disabled in release builds via `BuildConfig.DEBUG`.
+ * ============================================================================
  */
 
 object ByteUtils {

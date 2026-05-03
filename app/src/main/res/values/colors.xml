@@ -200,4 +200,6 @@
     <!-- Background of success Snackbars -->
     <color name="snackbar_success_background">@color/palette_green_600</color>
 
+
+
 </resources>

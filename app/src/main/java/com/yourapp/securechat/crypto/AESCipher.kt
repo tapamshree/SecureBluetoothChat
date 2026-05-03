@@ -14,24 +14,42 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * AESCipher — Core AES-256-GCM encryption and decryption.
- *
- * All messages sent over Bluetooth are encrypted via [encrypt] before writing
- * to the socket, and decrypted via [decrypt] immediately after reading.
- *
- * Wire format for every encrypted payload:
- * ┌─────────────────┬────────────────────┬─────────────────────────┐
- * │   IV (12 bytes) │  AuthTag (16 bytes) │  Ciphertext (N bytes)  │
- * └─────────────────┴────────────────────┴─────────────────────────┘
- *
- * Note: The Java/Android GCM Cipher appends the AuthTag to the end of the
- * ciphertext output automatically. We prepend the IV manually so the receiver
- * can extract it before decrypting.
- *
- * Usage:
- *   val cipher = AESCipher()
- *   val encrypted = cipher.encrypt("Hello!", sessionKey)
- *   val decrypted = cipher.decrypt(encrypted, sessionKey)
+ * ============================================================================
+ * FILE: AESCipher.kt
+ * ============================================================================
+ * 
+ * 1. PURPOSE OF THE FILE:
+ * To provide the core cryptographic engines for securely encrypting and decrypting
+ * the exact byte payloads sent over the Bluetooth socket.
+ * 
+ * 2. HOW IT WORKS:
+ * It utilizes the Java Cryptography Extension (JCE) `javax.crypto.Cipher` class 
+ * configured for AES-256 in Galois/Counter Mode (GCM). 
+ * - Encryption: It dynamically generates a random 12-byte Initialization Vector (IV), 
+ *   encrypts the payload, and produces a 16-byte authentication tag. It then packs 
+ *   these together into a single byte array (the "wire format") to send over Bluetooth.
+ * - Decryption: It receives the wire format byte array, extracts the IV, and feeds the
+ *   ciphertext and authentication tag back into the cipher, yielding the plaintext.
+ * 
+ * 3. WHY IS IT IMPORTANT:
+ * This file is the absolute bedrock of the "Secure" in CipherLink. Without 
+ * this process, chat data would be broadcasted in plain text over the airwaves, easily
+ * interceptable by anyone running a packet sniffer nearby.
+ * 
+ * 4. ROLE IN THE PROJECT:
+ * This component acts as the "Middleman" between the application data formatting layer 
+ * (`SecureMessageWrapper`) and the raw Bluetooth Socket output stream. It is strictly
+ * focused on byte-level encryption, agnostic to what those bytes actually mean.
+ * 
+ * 5. WHAT DOES EACH PART DO:
+ * - [encrypt()]: Converts plain string/bytes into safe ciphertext along with its IV and Tag.
+ * - [decrypt() / decryptToBytes()]: Validates the Tag, uses the IV, and reverses the encryption.
+ * - [encryptToBase64() / decryptFromBase64()]: Helper methods to convert binary cipher 
+ *   data into printable ASCII strings (useful for debugging).
+ * - [generateIV()]: A private helper that queries `SecureRandom` to ensure IVs are never reused.
+ * - [AESCipherException]: A custom error type to cleanly handle internal decryption failures 
+ *   (like tampered packets resulting in `AEADBadTagException`).
+ * ============================================================================
  */
 class AESCipher {
 

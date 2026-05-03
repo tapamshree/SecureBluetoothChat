@@ -4,35 +4,44 @@ import org.json.JSONObject
 import javax.crypto.SecretKey
 
 /**
- * SecureMessageWrapper — Packages a plaintext chat message into a structured
- * encrypted payload, and unpacks received encrypted payloads back to readable messages.
- *
- * Why this layer exists:
- * [AESCipher] only handles raw bytes ↔ encrypted bytes. This wrapper adds a
- * structured envelope around the message BEFORE encryption, so that metadata
- * (sender ID, timestamp, message type, sequence number) travels with the
- * ciphertext and is also protected by AES-GCM authentication.
- *
- * Plaintext JSON envelope (encrypted as a whole):
- * {
- *   "id":        "uuid-string",        // Unique message ID
- *   "sender":    "device-address",     // Sender's BT MAC address
- *   "type":      "TEXT",               // Message type (TEXT, ACK, PING, etc.)
- *   "content":   "Hello!",             // The actual message body
- *   "timestamp": 1712345678901,        // Unix epoch milliseconds
- *   "seq":       42                    // Sequence number (replay attack prevention)
- * }
- *
- * The entire JSON object is encrypted — metadata is NOT visible in transit.
- *
- * Usage:
- *   // Sender side
- *   val payload = SecureMessageWrapper.wrap("Hello!", senderAddress, sessionKey)
- *   bluetoothSocket.outputStream.write(payload)
- *
- *   // Receiver side
- *   val message = SecureMessageWrapper.unwrap(receivedBytes, sessionKey)
- *   displayMessage(message.content)
+ * ============================================================================
+ * FILE: SecureMessageWrapper.kt
+ * ============================================================================
+ * 
+ * 1. PURPOSE OF THE FILE:
+ * To package raw plaintext strings, timestamps, message types, and sequence numbers 
+ * into a structured JSON envelope, which is then encrypted by `AESCipher` before
+ * transmission. Conversely, it receives decrypted bytes and parses them back into
+ * strongly-typed data objects.
+ * 
+ * 2. HOW IT WORKS:
+ * It utilizes an Envelope pattern. Before sending a message (like "Hello"), it creates
+ * a JSON object `{id: "123", sender: "MAC", type: "TEXT", content: "Hello", ...}`. 
+ * This entire JSON string is serialized to UTF-8 bytes and pushes through AES-GCM 
+ * encryption. The receiving device decrypts the bytes back to a JSON string and maps
+ * it to a Kotlin `DecryptedMessage` data class.
+ * 
+ * 3. WHY IS IT IMPORTANT:
+ * If we only encrypted the user's message body ("Hello"), the sender wouldn't be 
+ * authenticated at the protocol level, and we wouldn't be able to send control commands
+ * (like "PING" or "CHESS_INVITE") without confusing them for normal chat text. The 
+ * envelope ensures metadata is securely bound to the message content via the AES-GCM 
+ * authentication tag, defeating replay and tampering attacks.
+ * 
+ * 4. ROLE IN THE PROJECT:
+ * This is the Application layer of the networking stack. `BluetoothCore` handles socket
+ * streams, `AESCipher` handles encryption of bytes, but `SecureMessageWrapper` gives 
+ * semantic meaning to those bytes so the `ChatActivity` knows what to display.
+ * 
+ * 5. WHAT DOES EACH PART DO:
+ * - [MessageType]: Standard constants dictating how the receiver handles the payload.
+ * - [wrap()]: Bundles raw arguments into a JSON envelope and calls `aesCipher.encrypt()`.
+ * - [unwrap()]: Calls `aesCipher.decryptToBytes()` and inflates the result into a `DecryptedMessage`.
+ * - [generateMessageId()]: Provides basic idempotency tracking via unique IDs.
+ * - [DecryptedMessage]: An immutable data class summarizing the inflated payload.
+ * - [MessageParseException]: Custom error for payloads that decrypt successfully but
+ *   fail to parse as valid JSON.
+ * ============================================================================
  */
 object SecureMessageWrapper {
 
@@ -48,6 +57,7 @@ object SecureMessageWrapper {
         const val PING  = "PING"   // Keep-alive / connection check
         const val PONG  = "PONG"   // Response to PING
         const val BYE   = "BYE"    // Graceful disconnect signal
+
     }
 
     // JSON field keys

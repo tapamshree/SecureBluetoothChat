@@ -9,8 +9,31 @@ import com.yourapp.securechat.data.model.BluetoothDeviceInfo
 import com.yourapp.securechat.databinding.ItemDeviceBinding
 
 /**
- * RecyclerView adapter for displaying [BluetoothDeviceInfo] items.
- * Uses [ListAdapter] + [DiffUtil] for efficient list updates.
+ * ============================================================================
+ * FILE: DeviceListAdapter.kt
+ * ============================================================================
+ *
+ * 1. PURPOSE OF THE FILE:
+ * To render Bluetooth device rows in the paired/discovered RecyclerViews 
+ * on the `DeviceListActivity` screen.
+ *
+ * 2. HOW IT WORKS:
+ * Extends `ListAdapter` with `DiffUtil` for efficient list updates. Each row 
+ * inflates `item_device.xml` and displays the device's display name and 
+ * MAC address, with a click listener to initiate connection.
+ *
+ * 3. WHY IS IT IMPORTANT:
+ * Provides the visual representation of available devices, enabling the user 
+ * to identify and select a target for connection.
+ *
+ * 4. ROLE IN THE PROJECT:
+ * Pure UI adapter bridging `DeviceViewModel`'s device lists to the RecyclerView.
+ *
+ * 5. WHAT DOES EACH PART DO:
+ * - [DeviceViewHolder.bind()]: Populates name/address and wires the click callback.
+ * - [DiffCallback]: Compares devices by MAC address for identity, full equality for content.
+ * - [onDeviceClick]: Lambda callback fired when a device row is tapped.
+ * ============================================================================
  */
 class DeviceListAdapter(
     private val onDeviceClick: (BluetoothDeviceInfo) -> Unit
@@ -23,16 +46,8 @@ class DeviceListAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
 
         fun bind(device: BluetoothDeviceInfo) {
-            binding.deviceName.text = device.displayName
-            binding.deviceAddress.text = device.address
-            binding.bondStateBadge.text = when (device.bondState) {
-                BluetoothDeviceInfo.BondState.BONDED -> "Paired"
-                BluetoothDeviceInfo.BondState.BONDING -> "Pairing..."
-                BluetoothDeviceInfo.BondState.NONE -> ""
-            }
-            binding.bondStateBadge.visibility =
-                if (device.bondState == BluetoothDeviceInfo.BondState.NONE) android.view.View.GONE
-                else android.view.View.VISIBLE
+            binding.textDeviceName.text = device.displayName
+            binding.textDeviceAddress.text = device.address
             binding.root.setOnClickListener { onDeviceClick(device) }
         }
     }
